@@ -1,15 +1,4 @@
 
-/*
- * Lexer
- * Stand-alone build:
- * flex input_scanner.lex
- * gcc -Wall -o test lex.yy.c
- * Test run:
- * cat test.txt | ./test
- * Reference:
- * http://flex.sourceforge.net/manual/index.html
- */
-
 	/* options */
 %option nomain
 %option yylineno
@@ -22,39 +11,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "common.h"
+#include "input_parser.h"
+
 void scanner_error(const char *message);
 void eat_up_comments();
-int main();
-
-enum {
-	RES=0,
-	PUNCT,
-	ID,
-	NUM,
-	RELOP,
-	ADDOP,
-	MULOP,
-	ASSIGN,
-	AND,
-	OR,
-	NOT,
-	
-	END_OF_INPUT
-};
-
-static const char *lexeme_to_string[] = {
-	"res",
-	NULL,
-	"id",
-	"num",
-	"relop",
-	"addop",
-	"mulop",
-	"assign",
-	"and",
-	"or",
-	"not"
-};
 
 %}
 
@@ -96,64 +57,63 @@ whitespace	[ \t\n\r]+
 "!"				{ return NOT;
 				}
 
-"else"			{ return RES;
+"else"			{ return ELSE;
 				}
-"real"			{ return RES;
+"real"			{ return REAL;
 				}
-"integer"		{ return RES;
+"integer"		{ return INTEGER;
 				}
-"write"			{ return RES;
+"write"			{ return WRITE;
 				}
-"while"			{ return RES;
+"while"			{ return WHILE;
 				}
-"end"			{ return RES;
+"end"			{ return END;
 				}
-"do"			{ return RES;
+"do"			{ return DO;
 				}
-"if"			{ return RES;
+"if"			{ return IF;
 				}
-"then"			{ return RES;
+"then"			{ return THEN;
 				}
-"program"		{ return RES;
+"program"		{ return PROGRAM;
 				}
-"function"		{ return RES;
+"function"		{ return FUNCTION;
 				}
-"return"		{ return RES;
+"return"		{ return RETURN;
 				}
-"read"			{ return RES;
+"read"			{ return READ;
 				}
-"var"			{ return RES;
+"var"			{ return VAR;
 				}
-"for"			{ return RES;
+"for"			{ return FOR;
 				}
-"begin"			{ return RES;
+"begin"			{ return BEGIN_;
 				}
-"call"			{ return RES;
+"call"			{ return CALL;
 				}
 
-"("				{ return PUNCT;
+"("				{ return LPAREN;
 				}
-")"				{ return PUNCT;
+")"				{ return RPAREN;
 				}
-","				{ return PUNCT;
+","				{ return COMMA;
 				}
-":"				{ return PUNCT;
+":"				{ return COLON;
 				}
-";"				{ return PUNCT;
-				}
-"."				{ return PUNCT;
+";"				{ return SEMICOLON;
 				}
 
 {id}			{ return ID;
 				}
 
-{whitespace}	{ printf("%s", yytext);	/* FIXME: ignore */
+{whitespace}	{ /* ignore */
 				}
 
 .				{ scanner_error("undefined symbol");
 				}
 				
-<<EOF>>			{ return END_OF_INPUT;
+<<EOF>>			{ yytext = NULL;
+				  scanner_error("unexpected end of file");
 				}
 
 
@@ -192,25 +152,5 @@ void eat_up_comments()
 			scanner_error("open comment at end of file");
 		}
 	}
-}
-
-// testing
-int main()
-{
-	int lexeme_code;
-	const char *lexeme_str;
-	
-	while ((lexeme_code = yylex()) != END_OF_INPUT) {
-		lexeme_str = lexeme_to_string[lexeme_code];
-		if (lexeme_str != NULL) {
-			printf("<%s,%s>", lexeme_str, yytext);
-		}
-		else {
-			printf("%s", yytext);
-		}
-	}
-	printf("\n");
-	
-	return 0;
 }
 
