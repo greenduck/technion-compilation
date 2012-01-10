@@ -40,13 +40,17 @@ whitespace	[ \t\n\r]+
 "/*"			{ eat_up_comments();
 				}
 
-{num}			{ return NUM;
+{num}			{ yylval.text = strdup(yytext);
+				  return NUM;
 				}
-{relop}			{ return RELOP;
+{relop}			{ yylval.text = strdup(yytext);
+				  return RELOP;
 				}
-{addop}			{ return ADDOP;
+{addop}			{ yylval.text = strdup(yytext);
+				  return ADDOP;
 				}
-{mulop}			{ return MULOP;
+{mulop}			{ yylval.text = strdup(yytext);
+				  return MULOP;
 				}
 "="				{ return ASSIGN;
 				}
@@ -103,7 +107,8 @@ whitespace	[ \t\n\r]+
 ";"				{ return SEMICOLON;
 				}
 
-{id}			{ return ID;
+{id}			{ yylval.text = strdup(yytext);
+				  return ID;
 				}
 
 {whitespace}	{ /* ignore */

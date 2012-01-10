@@ -16,11 +16,17 @@ typedef struct node {
 
 //used functions
 NODEPTR
-  make_node (char* type,char* value, NODEPTR son);
+  make_node (const char* type,char* value, NODEPTR son);
 
 
 NODEPTR
 concat_list(NODEPTR list_head,NODEPTR new_item);
+
+/*
+ * Tree Traversal
+ */
+
+void traverse_dfs(NODEPTR list_head);
 
 #endif //COMMON_H
 
