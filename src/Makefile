@@ -23,7 +23,13 @@ OBJS += $(GENSRC_BIS:%.c=%.o)
 OBJS += $(SRC_C:%.c=$(OBJDIR)/%.o)
 OBJS += $(SRC_CC:%.cc=$(OBJDIR)/%.o)
 
-all: $(GENSRC_BIS) $(GENSRC_LEX) $(OBJS)
+all: toycompiler rxemu
+
+.PHONY: rxemu
+rxemu:
+	@$(MAKE) -C rxemu
+
+toycompiler: $(GENSRC_BIS) $(GENSRC_LEX) $(OBJS)
 	$(LINK) $(OBJS) -o $(OUTFILE)
 
 $(GENSRC_LEX): $(SRC_LEX)
@@ -44,11 +50,12 @@ $(OBJDIR)/%.o: %.cc
 $(OBJDIR)/%.o: %.cpp
 	$(COMPILE) -c $+ -o $@
 
-
+.PHONY: clean
 clean:
 	$(RM) $(OBJDIR)/*
 	$(RM) $(BINDIR)/*
 
+.PHONY: pack
 pack:
 	tar --exclude-vcs --exclude=$(OBJDIR)/* --exclude=$(BINDIR)/* -jcvf $(OUTFILE).tar.bz2 ../
 
