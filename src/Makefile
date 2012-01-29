@@ -1,12 +1,12 @@
 SRC_LEX = input_scanner.lex
 SRC_BIS = input_parser.y
 SRC_C = common.c
-SRC_CC =
+SRC_CC = utils.cc
 
 SRCDIR = ../src
 OBJDIR = ../obj
 BINDIR = ../bin
-OUTFILE = $(BINDIR)/comp
+OUTFILE = $(BINDIR)/rcc
 
 CCX = g++
 CFLAGS = -Wall -I$(SRCDIR) -I$(OBJDIR) -g
@@ -33,7 +33,7 @@ toycompiler: $(GENSRC_BIS) $(GENSRC_LEX) $(OBJS)
 	$(LINK) $(OBJS) -o $(OUTFILE)
 
 $(GENSRC_LEX): $(SRC_LEX)
-	flex -o $@ $<
+	flex -o$@ $<
 
 $(GENSRC_BIS): $(SRC_BIS)
 	bison -dv -o $@ $<
