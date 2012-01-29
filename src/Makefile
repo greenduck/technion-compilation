@@ -1,12 +1,12 @@
 SRC_LEX = input_scanner.lex
 SRC_BIS = input_parser.y
 SRC_C = common.c
-SRC_CC =
+SRC_CC = utils.cc
 
 SRCDIR = ../src
 OBJDIR = ../obj
 BINDIR = ../bin
-OUTFILE = $(BINDIR)/comp
+OUTFILE = $(BINDIR)/rcc
 
 CCX = g++
 CFLAGS = -Wall -I$(SRCDIR) -I$(OBJDIR) -g
@@ -23,11 +23,17 @@ OBJS += $(GENSRC_BIS:%.c=%.o)
 OBJS += $(SRC_C:%.c=$(OBJDIR)/%.o)
 OBJS += $(SRC_CC:%.cc=$(OBJDIR)/%.o)
 
-all: $(GENSRC_BIS) $(GENSRC_LEX) $(OBJS)
+all: toycompiler rxemu
+
+.PHONY: rxemu
+rxemu:
+	@$(MAKE) -C rxemu
+
+toycompiler: $(GENSRC_BIS) $(GENSRC_LEX) $(OBJS)
 	$(LINK) $(OBJS) -o $(OUTFILE)
 
 $(GENSRC_LEX): $(SRC_LEX)
-	flex -o $@ $<
+	flex -o$@ $<
 
 $(GENSRC_BIS): $(SRC_BIS)
 	bison -dv -o $@ $<
@@ -44,11 +50,12 @@ $(OBJDIR)/%.o: %.cc
 $(OBJDIR)/%.o: %.cpp
 	$(COMPILE) -c $+ -o $@
 
-
+.PHONY: clean
 clean:
 	$(RM) $(OBJDIR)/*
 	$(RM) $(BINDIR)/*
 
+.PHONY: pack
 pack:
 	tar --exclude-vcs --exclude=$(OBJDIR)/* --exclude=$(BINDIR)/* -jcvf $(OUTFILE).tar.bz2 ../
 
