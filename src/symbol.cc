@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "symtab.h"
+#include "symbol.h"
 #include "utils.h"
 
 template <typename TSym>
@@ -25,7 +25,7 @@ template <typename TSym>
 void CScopeInfo<TSym>::Add(TSym *symbol)
 {
 	if (m_database.find(symbol->label) != m_database.end()) {
-		throw CException(string("Symbol already exists: ") + symbol->label);
+		throw CCompilationException(string("Symbol already exists: ") + symbol->label);
 	}
 
 	m_database[symbol->label] = symbol;
@@ -53,7 +53,7 @@ TSym *CScopeInfo<TSym>::Get(const char *label)
 {
 	TSym *ret = GetOrDefault(label);
 	if (ret == NULL) {
-		throw CException(string("Symbol could not be found: ") + label);
+		throw CCompilationException(string("Symbol could not be found: ") + label);
 	}
 	return ret;
 }
@@ -76,30 +76,6 @@ void CScopeInfo<TSym>::dbg_disp()
 	}
 }
 
-class __Symbol
-{
-public:
-	enum SymType {
-		SYMVAR,
-		CONSTVAL
-	};
-
-	enum DataType {
-		UNDEF,
-		INTEGER,
-		REAL
-	};
-
-	string label;
-	??? value;
-	long address;
-
-	__Symbol(const char *label, SymType type);
-	~__Symbol();
-
-	static DataType GetNumericType(const char *value_string);
-	static string GetAutomaticName(const string prefix = "");
-};
 
 class Symbol
 {
@@ -147,7 +123,7 @@ int main()
 		current->Get("b");
 		current->Get("x");
 	}
-	catch (CException ex) {
+	catch (CCompilationException ex) {
 		cout << ex.String() << endl;
 	}
 

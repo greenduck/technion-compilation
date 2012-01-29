@@ -1,5 +1,5 @@
-#ifndef _SYMTAB_H
-#define _SYMTAB_H
+#ifndef _SYMBOL_H
+#define _SYMBOL_H
 
 #include <map>
 #include <list>
@@ -7,6 +7,7 @@
 
 using namespace std;
 
+// data structure for handling nested scopes
 template <typename TSym>
 class CScopeInfo
 {
@@ -29,5 +30,45 @@ private:
 	unsigned m_nesting_depth;
 };
 
-#endif	// _SYMTAB_H
+
+class CSymbol
+{
+public:
+	enum TypeID {
+		INTEGER,
+		REAL
+	};
+
+	CSymbol(const char *label, TypeID typeID);
+	CSymbol(T value, TypeID typeID);
+	~CSymbol();
+
+	const string Label();
+	TypeID Type();
+
+	void SetValue(T value);
+	T GetValue();
+	bool ValueIsSet();
+	void DiscardValue();
+
+	// debug
+	string String();
+
+private:
+	enum ValueStatus {
+		INVALID,
+		VALID,
+		CONST
+	};
+
+	string m_label;
+	TypeID m_typeID;
+	ValueStatus m_valueStatus;
+	T m_value;
+
+	int m_memalloc;
+	int m_regalloc;
+};
+
+#endif	// _SYMBOL_H
 
