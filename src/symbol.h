@@ -5,6 +5,8 @@
 #include <list>
 #include <string>
 
+#include "utils.h"
+
 using namespace std;
 
 // data structure for handling nested scopes
@@ -12,13 +14,72 @@ template <typename TSym>
 class CScopeInfo
 {
 public:
-	CScopeInfo(CScopeInfo<TSym> *parent);
-	~CScopeInfo();
+	CScopeInfo(CScopeInfo<TSym> *parent)
+		:m_superscope(parent)
+	{
+		if (m_superscope == NULL) {
+			m_nesting_depth = 0;
+		}
+		else {
+			m_nesting_depth = m_superscope->m_nesting_depth + 1;
+			m_superscope->m_subscope.push_back(this);
+		}
+	}
 
-	void Add(TSym *symbol);
-	TSym *GetOrDefault(const char *label);
-	TSym *Get(const char *label);
-	void dbg_disp();
+	~CScopeInfo()
+	{
+	}
+
+	void Add(TSym *symbol)
+	{
+		if (m_database.find(symbol->label) != m_database.end()) {
+			throw CCompilationException(string("Symbol already exists: ") + symbol->label);
+		}
+	
+		m_database[symbol->label] = symbol;
+	}
+
+	TSym *GetOrDefault(const char *label)
+	{
+		// success
+		if (m_database.find(label) != m_database.end()) {
+			return m_database[label];
+		}
+	
+		// failure
+		if (m_superscope == NULL) {
+			return NULL;
+		}
+	
+		// keep searching
+		return m_superscope->GetOrDefault(label);
+	}
+
+	TSym *Get(const char *label)
+	{
+		TSym *ret = GetOrDefault(label);
+		if (ret == NULL) {
+			throw CCompilationException(string("Symbol could not be found: ") + label);
+		}
+		return ret;
+	}
+
+	void dbg_disp()
+	{
+		typename SymDB::iterator sym;
+		for (sym = m_database.begin(); sym != m_database.end(); ++sym) {
+			for (unsigned k = 0; k < m_nesting_depth; ++k) {
+				cout << "\t";
+			}
+	
+			cout << sym->first << endl;
+		}
+	
+		typename ScopeList::iterator subs;
+		for (subs = m_subscope.begin(); subs != m_subscope.end(); ++subs) {
+			(*subs)->dbg_disp();
+		}
+	}
 
 private:
 	typedef list<CScopeInfo<TSym> *> ScopeList;
@@ -31,6 +92,7 @@ private:
 };
 
 
+
 class CSymbol
 {
 public:
@@ -40,19 +102,18 @@ public:
 	};
 
 	CSymbol(const char *label, TypeID typeID);
-	CSymbol(T value, TypeID typeID);
+//	CSymbol(const char *value, TypeID typeID);
 	~CSymbol();
 
-	const string Label();
+	string Label();
 	TypeID Type();
 
-	void SetValue(T value);
-	T GetValue();
+	void SetValue(const char *value);
+	string GetValue();
 	bool ValueIsSet();
 	void DiscardValue();
 
-	// debug
-	string String();
+	friend ostream& operator<<(ostream& os, const CSymbol& sym);
 
 private:
 	enum ValueStatus {
@@ -64,7 +125,7 @@ private:
 	string m_label;
 	TypeID m_typeID;
 	ValueStatus m_valueStatus;
-	T m_value;
+	string m_value;
 
 	int m_memalloc;
 	int m_regalloc;

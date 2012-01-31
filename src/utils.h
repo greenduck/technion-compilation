@@ -4,6 +4,19 @@
 #include <string>
 #include <iostream>
 
+
+
+// flex / bison exported symbols
+int yylex(void);
+int yyparse(void);
+void yyerror(const char *);
+
+extern int yylineno;
+extern char *yytext;
+extern FILE *yyin;
+
+
+
 using namespace std;
 
 // basic exception class

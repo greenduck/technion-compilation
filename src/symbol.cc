@@ -3,130 +3,72 @@
 #include "symbol.h"
 #include "utils.h"
 
-template <typename TSym>
-CScopeInfo<TSym>::CScopeInfo(CScopeInfo<TSym> *parent)
-	:m_superscope(parent)
-{
-	if (m_superscope == NULL) {
-		m_nesting_depth = 0;
-	}
-	else {
-		m_nesting_depth = m_superscope->m_nesting_depth + 1;
-		m_superscope->m_subscope.push_back(this);
-	}
-}
-
-template <typename TSym>
-CScopeInfo<TSym>::~CScopeInfo()
+CSymbol::CSymbol(const char *label, TypeID typeID)
+	:m_label(label),
+	 m_typeID(typeID),
+	 m_valueStatus(INVALID),
+	 m_memalloc(-1),
+	 m_regalloc(-1)
 {
 }
 
-template <typename TSym>
-void CScopeInfo<TSym>::Add(TSym *symbol)
-{
-	if (m_database.find(symbol->label) != m_database.end()) {
-		throw CCompilationException(string("Symbol already exists: ") + symbol->label);
-	}
+// CSymbol::CSymbol(const char *value, TypeID typeID)
+// 	:m_label(""),
+// 	 m_typeID(typeID),
+// 	 m_valueStatus(CONST),
+// 	 m_memalloc(-1),
+// 	 m_regalloc(-1)
+// {
+// }
 
-	m_database[symbol->label] = symbol;
+CSymbol::~CSymbol()
+{
 }
 
-template <typename TSym>
-TSym *CScopeInfo<TSym>::GetOrDefault(const char *label)
+string CSymbol::Label()
 {
-	// success
-	if (m_database.find(label) != m_database.end()) {
-		return m_database[label];
-	}
-
-	// failure
-	if (m_superscope == NULL) {
-		return NULL;
-	}
-
-	// keep searching
-	return m_superscope->GetOrDefault(label);
+	return m_label;
 }
 
-template <typename TSym>
-TSym *CScopeInfo<TSym>::Get(const char *label)
+CSymbol::TypeID CSymbol::Type()
 {
-	TSym *ret = GetOrDefault(label);
-	if (ret == NULL) {
-		throw CCompilationException(string("Symbol could not be found: ") + label);
-	}
-	return ret;
+	return m_typeID;
 }
 
-template <typename TSym>
-void CScopeInfo<TSym>::dbg_disp()
+void CSymbol::SetValue(const char *value)
 {
-	typename SymDB::iterator sym;
-	for (sym = m_database.begin(); sym != m_database.end(); ++sym) {
-		for (unsigned k = 0; k < m_nesting_depth; ++k) {
-			cout << "\t";
-		}
+	if (m_valueStatus == CONST)
+		throw CBugException("Attempt to change constant value");
 
-		cout << sym->first << endl;
-	}
-
-	typename ScopeList::iterator subs;
-	for (subs = m_subscope.begin(); subs != m_subscope.end(); ++subs) {
-		(*subs)->dbg_disp();
-	}
+	m_value = string(value);
+	m_valueStatus = VALID;
 }
 
-
-class Symbol
+string CSymbol::GetValue()
 {
-public:
-	string label;
-	Symbol(const string name)
-		:label(name)
-	{
-	}
-	~Symbol()
-	{
-	}
-};
+	if (m_valueStatus == INVALID)
+		throw CBugException("Request undetermined value: " + m_label);
 
-int main()
+	return m_value;
+}
+
+bool CSymbol::ValueIsSet()
 {
-	typedef CScopeInfo<Symbol> CScope;
+	return (m_valueStatus >= VALID);
+}
 
-	CScope *top;
-	CScope *current;
+void CSymbol::DiscardValue()
+{
+	if (m_valueStatus == CONST)
+		throw CBugException("Attempt to discard constant value");
 
-	try {
-		current = new CScope(NULL);
-		top = current;
-	
-		Symbol a("a");
-		Symbol b("b");
-		Symbol c("c");
-		current->Add(&a);
-		current->Add(&b);
-		current->Add(&c);
-	
-		current = new CScope(current);
-		Symbol d("d");
-		Symbol e("e");
-		Symbol a2("a");
-		current->Add(&d);
-		current->Add(&e);
-		current->Add(&a2);
-		//current->Add(new Symbol("a"));
+	m_valueStatus = INVALID;
+}
 
-		top->dbg_disp();
-
-		current->Get("a");
-		current->Get("b");
-		current->Get("x");
-	}
-	catch (CCompilationException ex) {
-		cout << ex.String() << endl;
-	}
-
-	return 0;
+ostream& operator<<(ostream& os, const CSymbol& sym)
+{
+	// TODO: with const. folding on, display value whenever it is known (VALID, CONST)
+	os << ((sym.m_valueStatus != CSymbol::CONST) ? sym.m_label : sym.m_value);
+	return os;
 }
 

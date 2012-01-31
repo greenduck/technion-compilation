@@ -1,7 +1,13 @@
 SRC_LEX = input_scanner.lex
 SRC_BIS = input_parser.y
 SRC_C = common.c
-SRC_CC = utils.cc
+SRC_CC = utils.cc symbol.cc code.cc
+
+ifndef unittest
+	SRC_CC += main.cc
+else
+	SRC_CC += unittest.cc
+endif
 
 SRCDIR = ../src
 OBJDIR = ../obj
