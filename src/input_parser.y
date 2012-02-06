@@ -4,13 +4,21 @@
 
 #include <stdio.h>
 #include "utils.h"
-#include "common.h"
+#include "semantic_rules.h"
+#include "symbol.h"
 
 %}
 
 %union {
-	char *text;
-	NODEPTR node;
+	char		*text;
+	CSymbol::TypeID	typeID;
+	IDQueue		*idQueue;
+	SFactor		_factor;
+	STerm		_term;
+	SExp		_exp;
+	SStmt		_stmt;
+	SList		_list;
+	SBlk		_blk;
 }
 
 %token PROGRAM
@@ -47,317 +55,173 @@
 %token <text> RELOP
 
 %start program
-%type <node> function
-%type <node> main_function
-%type <node> blk
-%type <node> func_ret
-%type <node> func_arg
-%type <node> type
-%type <node> declarations
-%type <node> list
-%type <node> declarlist
-%type <node> dcl
-%type <node> idents
-%type <node> stmt
-%type <node> assn
-%type <node> cntrl
-%type <node> read
-%type <node> write
-%type <node> return
-%type <node> exp
-%type <node> bexp
-%type <node> bterm
-%type <node> bfac
-%type <node> bpfac
-%type <node> term
-%type <node> factor
+//-%type <node> function
+// %type <node> main_function
+%type <_blk> blk
+//-%type <node> func_ret
+//-%type <node> func_arg
+%type <typeID> type
+// %type <node> declarations
+%type <_list> list
+// %type <node> declarlist
+// %type <node> dcl
+%type <idQueue> idents
+%type <_stmt> stmt
+// %type <node> assn
+//-%type <node> cntrl
+//-%type <node> read
+//-%type <node> write
+//-%type <node> return
+%type <_exp> exp
+//-%type <node> bexp
+//-%type <node> bterm
+//-%type <node> bfac
+//-%type <node> bpfac
+%type <_term> term
+%type <_factor> factor
 
 %right IF THEN ELSE
 
 %%
 	/* semantic rules */
 
-program		: function main_function		{ NODEPTR p = concat_list($1, $2);
-							  NODEPTR all_prog = make_node("PROGRAM", NULL, p);
-							  traverse_dfs(all_prog);
-							  printf("\n");
+program		: function main_function		{ currentScope->Disp();
+							  emit.Disp();
 							  return 0;
 							}
 		;
 
-main_function	: PROGRAM blk				{ NODEPTR prog = make_node("program", NULL, NULL);
-							  NODEPTR p = concat_list(prog, $2);
-							  $$ = make_node("MAIN_FUNCTION", NULL, p);
+main_function	: PROGRAM blk				{ if ($2.nextlist != NULL) {
+								/*$2.nextlist->backpatch();*/
+							  }
+							  emit.halt();
 							}
 		;
 
-function	: func_ret func_arg blk			{ NODEPTR p = concat_list($1, $2);
-							  p = concat_list(p, $3);
-							  $$ = make_node("FUNCTION", NULL, p);
+function	: func_ret func_arg blk			{ BUG_IF(true, "Non-implemented case");
 							}
-		| /* eps */				{ NODEPTR eps = make_node("EPSILON", NULL, NULL);
-							  $$ = make_node("FUNCTION", NULL, eps);
-							}
+		| /* eps */				{ }
 		;
 
 func_arg	: LPAREN ID COLON type COMMA ID COLON type RPAREN	{
-						    	  NODEPTR lpar = make_node("(", NULL, NULL);
-							  NODEPTR id_0 = make_node("id", $2, NULL);
-							  NODEPTR colon_0 = make_node(":", NULL, NULL);
-							  NODEPTR comma = make_node(",", NULL, NULL);
-							  NODEPTR id_1 = make_node("id", $6, NULL);
-							  NODEPTR colon_1 = make_node(":", NULL, NULL);
-							  NODEPTR rparen = make_node(")", NULL, NULL);
-							  NODEPTR p = concat_list(lpar, id_0);
-							  p = concat_list(p, colon_0);
-							  p = concat_list(p, $4);
-							  p = concat_list(p, comma);
-							  p = concat_list(p, id_1);
-							  p = concat_list(p, colon_1);
-							  p = concat_list(p, $8);
-							  p = concat_list(p, rparen);
-							  $$ = make_node("FUNC_ARG", NULL, p);
+						    	  BUG_IF(true, "Non-implemented case");
 							}
 		;
 
-func_ret	: type FUNCTION				{ NODEPTR func = make_node("function", NULL, NULL);
-							  NODEPTR p = concat_list($1, func);
-							  $$ = make_node("FUNC_RET", NULL, p);
+func_ret	: type FUNCTION				{ BUG_IF(true, "Non-implemented case");
 							}
 		;
 
-blk		: declarations BEGIN_ list END		{ NODEPTR beg = make_node("begin", NULL, NULL);
-							  NODEPTR end = make_node("end", NULL, NULL);
-							  NODEPTR p = concat_list($1, beg);
-							  p = concat_list(p, $3);
-							  p = concat_list(p, end);
-							  $$ = make_node("BLK", NULL, p);
+blk		: m0 declarations BEGIN_ list END	{ $$.nextlist = $4.nextlist;
+							  blk_exit();
 							}
 		;
 
-declarations	: VAR declarlist			{ NODEPTR var = make_node("var", NULL, NULL);
-							  NODEPTR p = concat_list(var, $2);
-      							  $$ = make_node("DECLARATIONS", NULL, p);
-							}
-		| /* eps */				{ NODEPTR eps = make_node("EPSILON", NULL, NULL);
-							  $$ = make_node("DECLARATIONS", NULL, eps);
+declarations	: VAR declarlist			{ }
+		| /* eps */				{ }
+		;
+
+declarlist	: dcl declarlist			{ }
+		| /* eps */				{ }
+		;
+
+dcl		: idents COLON type SEMICOLON		{ dcl_applySymbols($1, $3);
+							  delete $1;
 							}
 		;
 
-declarlist	: dcl declarlist			{ NODEPTR p = concat_list($1, $2);
-							  $$ = make_node("DECLARLIST", NULL, p);
+idents		: ID					{ $$ = new IDQueue();
+							  $$->push($1);
 							}
-		| /* eps */				{ NODEPTR eps = make_node("EPSILON", NULL, NULL);
-							  $$ = make_node("DECLARLIST", NULL, eps);
-							}
-		;
-
-dcl		: idents COLON type SEMICOLON		{ NODEPTR col = make_node(":", NULL, NULL);
-							  NODEPTR semicol = make_node(";", NULL, NULL);
-							  NODEPTR p = concat_list($1, col);
-							  p = concat_list(p, $3);
-							  p = concat_list(p, semicol);
-							  $$ = make_node("DCL", NULL, p);
+		| idents COMMA ID			{ $$ = $1;
+							  $$->push($3);
 							}
 		;
 
-idents		: ID					{ NODEPTR id = make_node("id", $1, NULL);
-							  $$ = make_node("IDENTS", NULL, id);
-							}
-		| idents COMMA ID			{ NODEPTR comma = make_node(",", NULL, NULL);
-							  NODEPTR id = make_node("id", $3, NULL);
-							  NODEPTR p = concat_list($1, comma);
-							  p = concat_list(p, id);
-							  $$ = make_node("IDENTS", NULL, p);
+type		: INTEGER				{ $$ = CSymbol::INTEGER; }
+		| REAL					{ $$ = CSymbol::REAL; }
+		;
+
+list		: list stmt				{ $$.nextlist = NULL;/*$1.nextlist->merge($2.nextlist);*/ }
+		| /* eps */				{ $$.nextlist = NULL; }
+		;
+
+stmt		: assn					{ $$.nextlist = NULL; }
+		| cntrl					{ BUG_IF(true, "Non-implemented case"); }
+		| read					{ BUG_IF(true, "Non-implemented case"); }
+		| write					{ BUG_IF(true, "Non-implemented case"); }
+		| return				{ BUG_IF(true, "Non-implemented case"); }
+		| blk					{ BUG_IF(true, "Non-implemented case"); }
+		;
+
+write		: WRITE LPAREN exp RPAREN SEMICOLON	{ BUG_IF(true, "Non-implemented case");
 							}
 		;
 
-type		: INTEGER				{ NODEPTR integer = make_node("integer", NULL, NULL);
-							  $$ = make_node("TYPE", NULL, integer);
-							}
-		| REAL					{ NODEPTR real = make_node("real", NULL, NULL);
-							  $$ = make_node("TYPE", NULL, real);
+return		: RETURN LPAREN exp RPAREN SEMICOLON	{ BUG_IF(true, "Non-implemented case");
 							}
 		;
 
-list		: list stmt				{ NODEPTR p = concat_list($1, $2);
-							  $$ = make_node("LIST", NULL, p);
-							}
-		| /* eps */				{ NODEPTR eps = make_node("EPSILON", NULL, NULL);
-							  $$ = make_node("LIST", NULL, eps);
+read		: READ LPAREN ID RPAREN SEMICOLON	{ BUG_IF(true, "Non-implemented case");
 							}
 		;
 
-stmt		: assn					{ $$ = make_node("STMT", NULL, $1); }
-		| cntrl					{ $$ = make_node("STMT", NULL, $1); }
-		| read					{ $$ = make_node("STMT", NULL, $1); }
-		| write					{ $$ = make_node("STMT", NULL, $1); }
-		| return				{ $$ = make_node("STMT", NULL, $1); }
-		| blk					{ $$ = make_node("STMT", NULL, $1); }
+assn		: ID ASSIGN exp SEMICOLON		{ emit.copy(currentScope->Get($1), $3.place); }
 		;
 
-write		: WRITE LPAREN exp RPAREN SEMICOLON	{ NODEPTR wri = make_node("write", NULL, NULL);
-							  NODEPTR lpar = make_node("(", NULL, NULL);
-							  NODEPTR rpar = make_node(")", NULL, NULL);
-							  NODEPTR semicol = make_node(";", NULL, NULL);
-							  NODEPTR p = concat_list(wri, lpar);
-							  p = concat_list(p, $3);
-							  p = concat_list(p, rpar);
-							  p = concat_list(p, semicol);
-							  $$ = make_node("WRITE", NULL, p);
+cntrl		: IF bexp THEN stmt ELSE stmt		{ BUG_IF(true, "Non-implemented case");
 							}
-		;
-
-return		: RETURN LPAREN exp RPAREN SEMICOLON	{ NODEPTR ret = make_node("return", NULL, NULL);
-							  NODEPTR lpar = make_node("(", NULL, NULL);
-							  NODEPTR rpar = make_node(")", NULL, NULL);
-							  NODEPTR semicol = make_node(";", NULL, NULL);
-							  NODEPTR p = concat_list(ret, lpar);
-							  p = concat_list(p, $3);
-							  p = concat_list(p, rpar);
-							  p = concat_list(p, semicol);
-							  $$ = make_node("RETURN", NULL, p);
-							}
-		;
-
-read		: READ LPAREN ID RPAREN SEMICOLON	{ NODEPTR red = make_node("read", NULL, NULL);
-							  NODEPTR lpar = make_node("(", NULL, NULL);
-							  NODEPTR id = make_node("id", $3, NULL);
-							  NODEPTR rpar = make_node(")", NULL, NULL);
-							  NODEPTR semicol = make_node(";", NULL, NULL);
-							  NODEPTR p = concat_list(red, lpar);
-							  p = concat_list(p, id);
-							  p = concat_list(p, rpar);
-							  p = concat_list(p, semicol);
-							  $$ = make_node("READ", NULL, p);
-							}
-		;
-
-assn		: ID ASSIGN exp SEMICOLON		{ NODEPTR ret = make_node("id", $1, NULL);
-							  NODEPTR ass = make_node("assign", NULL, NULL);
-							  NODEPTR semicol = make_node(";", NULL, NULL);
-							  NODEPTR p = concat_list(ret, ass);
-							  p = concat_list(p, $3);
-							  p = concat_list(p, semicol);
-							  $$ = make_node("ASSN", NULL, p);
-							}
-		;
-
-cntrl		: IF bexp THEN stmt ELSE stmt		{ NODEPTR iflex = make_node("if", NULL, NULL);
-							  NODEPTR thenlex = make_node("then", NULL, NULL);
-							  NODEPTR elselex = make_node("else", NULL, NULL);
-							  NODEPTR p = concat_list(iflex, $2);
-							  p = concat_list(p, thenlex);
-							  p = concat_list(p, $4);
-							  p = concat_list(p, elselex);
-							  p = concat_list(p, $6);
-							  $$ = make_node("CNTRL", NULL, p);
-							}
-		| IF bexp THEN stmt			{ NODEPTR iflex = make_node("if", NULL, NULL);
-							  NODEPTR thenlex = make_node("then", NULL, NULL);
-							  NODEPTR p = concat_list(iflex, $2);
-							  p = concat_list(p, thenlex);
-							  p = concat_list(p, $4);
-							  $$ = make_node("CNTRL", NULL, p);
+		| IF bexp THEN stmt			{ BUG_IF(true, "Non-implemented case");
 							}
 		| FOR LPAREN stmt bexp SEMICOLON stmt RPAREN stmt	{
-				    			  NODEPTR forlex = make_node("for", NULL, NULL);
-							  NODEPTR lpar = make_node("(", NULL, NULL);
-							  NODEPTR semicol = make_node(";", NULL, NULL);
-							  NODEPTR rpar = make_node(")", NULL, NULL);
-							  NODEPTR p = concat_list(forlex, lpar);
-							  p = concat_list(p, $3);
-							  p = concat_list(p, $4);
-							  p = concat_list(p, semicol);
-							  p = concat_list(p, $6);
-							  p = concat_list(p, rpar);
-							  p = concat_list(p, $8);
-							  $$ = make_node("CNTRL", NULL, p);
+				    			  BUG_IF(true, "Non-implemented case");
 							}
-		| WHILE bexp DO stmt			{ NODEPTR whilelex = make_node("while", NULL, NULL);
-							  NODEPTR dolex = make_node("do", NULL, NULL);
-							  NODEPTR p = concat_list(whilelex, $2);
-							  p = concat_list(p, dolex);
-							  p = concat_list(p, $4);
-							  $$ = make_node("CNTRL", NULL, p);
+		| WHILE bexp DO stmt			{ BUG_IF(true, "Non-implemented case");
 							}
 		;
 
-bexp		: bexp OR bterm				{ NODEPTR orlex = make_node("or", NULL, NULL);
-							  NODEPTR p = concat_list($1, orlex);
-							  p = concat_list(p, $3);
-							  $$ = make_node("BEXP", NULL, p);
+bexp		: bexp OR bterm				{ BUG_IF(true, "Non-implemented case");
 							}
-		| bterm					{ $$ = make_node("BEXP", NULL, $1); }
+		| bterm					{ BUG_IF(true, "Non-implemented case"); }
 		;
 
-bterm		: bterm AND bfac			{ NODEPTR andlex = make_node("and", NULL, NULL);
-							  NODEPTR p = concat_list($1, andlex);
-							  p = concat_list(p, $3);
-							  $$ = make_node("BTERM", NULL, p);
+bterm		: bterm AND bfac			{ BUG_IF(true, "Non-implemented case");
 							}
-		| bfac					{ $$ = make_node("BTERM", NULL, $1); }
+		| bfac					{ BUG_IF(true, "Non-implemented case"); }
 		;
 
-bfac		: NOT bfac				{ NODEPTR notlex = make_node("not", NULL, NULL);
-							  NODEPTR p = concat_list(notlex, $2);
-							  $$ = make_node("BFAC", NULL, p);
+bfac		: NOT bfac				{ BUG_IF(true, "Non-implemented case");
 							}
-		| bpfac					{ $$ = make_node("BFAC", NULL, $1); }
+		| bpfac					{ BUG_IF(true, "Non-implemented case"); }
 		;
 
-bpfac		: exp RELOP exp				{ NODEPTR relop = make_node("relop", $2, NULL);
-							  NODEPTR p = concat_list($1, relop);
-							  p = concat_list(p, $3);
-							  $$ = make_node("BPFAC", NULL, p);
+bpfac		: exp RELOP exp				{ BUG_IF(true, "Non-implemented case");
 							}
-		| LPAREN bexp RPAREN			{ NODEPTR lpar = make_node("(", NULL, NULL);
-							  NODEPTR rpar = make_node(")", NULL, NULL);
-							  NODEPTR p = concat_list(lpar, $2);
-							  p = concat_list(p, rpar);
-							  $$ = make_node("BPFAC", NULL, p);
+		| LPAREN bexp RPAREN			{ BUG_IF(true, "Non-implemented case");
 							}
 		;
 
-exp		: CALL LPAREN exp COMMA exp RPAREN	{ NODEPTR call = make_node("call", NULL, NULL);
-							  NODEPTR lpar = make_node("(", NULL, NULL);
-							  NODEPTR comma = make_node(",", NULL, NULL);
-							  NODEPTR rpar = make_node(")", NULL, NULL);
-							  NODEPTR p = concat_list(call, lpar);
-							  p = concat_list(p, $3);
-							  p = concat_list(p, comma);
-							  p = concat_list(p, $5);
-							  p = concat_list(p, rpar);
-							  $$ = make_node("EXP", NULL, p);
+exp		: CALL LPAREN exp COMMA exp RPAREN	{ BUG_IF(true, "Non-implemented case");
 							}
-		| exp ADDOP term			{ NODEPTR addop = make_node("addop", $2, NULL);
-							  NODEPTR p = concat_list($1, addop);
-							  p = concat_list(p, $3);
-							  $$ = make_node("EXP", NULL, p);
+		| exp ADDOP term			{ $$.place = newTemp(DestSymbolType($1.place, $3.place));
+							  emit.arith($2, $$.place, $1.place, $3.place);
 							}
-		| term					{ $$ = make_node("EXP", NULL, $1); }
+		| term					{ $$.place = $1.place; }
 		;
 
-term		: term MULOP factor			{ NODEPTR mulop = make_node("mulop", $2, NULL);
-							  NODEPTR p = concat_list($1, mulop);
-							  p = concat_list(p, $3);
-							  $$ = make_node("TERM", NULL, p);
+term		: term MULOP factor			{ $$.place = newTemp(DestSymbolType($1.place, $3.place));
+							  emit.arith($2, $$.place, $1.place, $3.place);
 							}
-		| factor				{ $$ = make_node("TERM", NULL, $1); }
+		| factor				{ $$.place = $1.place; }
 		;
 
-factor		: LPAREN exp RPAREN			{ NODEPTR lpar = make_node("(", NULL, NULL);
-							  NODEPTR rpar = make_node(")", NULL, NULL);
-							  NODEPTR p = concat_list(lpar, $2);
-							  p = concat_list(p, rpar);
-							  $$ = make_node("FACTOR", NULL, p);
-							}
-		| ID					{ NODEPTR id = make_node("id", $1, NULL);
-							  $$ = make_node("FACTOR", NULL, id);
-							}
-		| NUM					{ NODEPTR num = make_node("num", $1, NULL);
-							  $$ = make_node("FACTOR", NULL, num);
-							}
+factor		: LPAREN exp RPAREN			{ $$.place = $2.place; }
+		| ID					{ $$.place = currentScope->Get($1); }
+		| NUM					{ $$.place = newConst($1); }
+		;
+
+	/* markers */
+m0		:					{ blk_enter(); }
 		;
 
 %%

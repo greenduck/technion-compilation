@@ -1,6 +1,9 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#include <stdio.h>
+#include <stdarg.h>
+
 #include <string>
 #include <iostream>
 
@@ -32,10 +35,7 @@ public:
 	{
 	}
 
-	virtual const string String()
-	{
-		return m_string;
-	}
+	friend ostream& operator<<(ostream& os, const CException& ex);
 
 private:
 	const string m_string;
@@ -60,6 +60,15 @@ public:
 	{
 	}
 };
+
+#define BUG_IF(cond, msg)													\
+	do {																	\
+		if (cond) {															\
+			char temp[64];													\
+			snprintf(temp, sizeof(temp), "[%s:%d]: ", __FILE__, __LINE__);	\
+			throw CBugException(string(temp) + string(msg));				\
+		}																	\
+	} while(0)
 
 
 

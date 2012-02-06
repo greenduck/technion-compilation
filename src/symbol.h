@@ -30,13 +30,18 @@ public:
 	{
 	}
 
+	CScopeInfo<TSym> *Superscope()
+	{
+		return m_superscope;
+	}
+
 	void Add(TSym *symbol)
 	{
-		if (m_database.find(symbol->label) != m_database.end()) {
-			throw CCompilationException(string("Symbol already exists: ") + symbol->label);
+		if (m_database.find(symbol->Label()) != m_database.end()) {
+			throw CCompilationException(string("Symbol already exists: ") + symbol->Label());
 		}
 	
-		m_database[symbol->label] = symbol;
+		m_database[symbol->Label()] = symbol;
 	}
 
 	TSym *GetOrDefault(const char *label)
@@ -64,20 +69,21 @@ public:
 		return ret;
 	}
 
-	void dbg_disp()
+	void Disp()
 	{
 		typename SymDB::iterator sym;
 		for (sym = m_database.begin(); sym != m_database.end(); ++sym) {
 			for (unsigned k = 0; k < m_nesting_depth; ++k) {
-				cout << "\t";
+				dbgout << "\t";
 			}
 	
-			cout << sym->first << endl;
+			dbgout << sym->first << "\n";
 		}
 	
 		typename ScopeList::iterator subs;
 		for (subs = m_subscope.begin(); subs != m_subscope.end(); ++subs) {
-			(*subs)->dbg_disp();
+			dbgout << "\n";
+			(*subs)->Disp();
 		}
 	}
 
@@ -98,11 +104,12 @@ class CSymbol
 public:
 	enum TypeID {
 		INTEGER,
-		REAL
+		REAL,
+		LABEL
 	};
 
 	CSymbol(const char *label, TypeID typeID);
-//	CSymbol(const char *value, TypeID typeID);
+	CSymbol(const char *label, const char *value, TypeID typeID);
 	~CSymbol();
 
 	string Label();
@@ -114,6 +121,10 @@ public:
 	void DiscardValue();
 
 	friend ostream& operator<<(ostream& os, const CSymbol& sym);
+
+	static TypeID DiscoverType(const char *value);
+	static const char *NumericToString(int value);
+	static const char *NumericToString(float value);
 
 private:
 	enum ValueStatus {
@@ -130,6 +141,17 @@ private:
 	int m_memalloc;
 	int m_regalloc;
 };
+
+CSymbol *newSymbol(const char *label, CSymbol::TypeID typeID);
+CSymbol *newTemp(CSymbol::TypeID typeID);
+CSymbol *newConst(const char *value);
+CSymbol *newConst(int value);
+CSymbol *newConst(float value);
+CSymbol *newLabel(const char *prefix);
+
+
+
+typedef CScopeInfo<CSymbol> SymbolScope;
 
 #endif	// _SYMBOL_H
 

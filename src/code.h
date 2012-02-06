@@ -81,7 +81,19 @@ public:
     inline iterator begin() { return m_codeDB.begin(); }
     inline iterator end() { return m_codeDB.end(); }
 
+	void Disp();
+
 	// instruction implementation
+	// convenience macro instructions
+	void copy(CSymbol *dest, CSymbol *src);
+	void prnt(CSymbol *src);
+	void read(CSymbol *dest);
+	void comp(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *src1);
+	void arith(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *src1);
+	void load(CSymbol *dest, CSymbol *addr0, CSymbol *addr1);
+	void stor(CSymbol *src, CSymbol *addr0, CSymbol *addr1);
+
+	// machine instructions
 	void copyi(CSymbol *dest, CSymbol *src);
 	void prnti(CSymbol *src);
 	void readi(CSymbol *dest);
@@ -122,6 +134,10 @@ public:
 
 	void halt(void);
 };
+
+
+
+CSymbol::TypeID DestSymbolType(CSymbol *src0, CSymbol *src1);
 
 #endif	// _CODE_H
 

@@ -1,7 +1,7 @@
 SRC_LEX = input_scanner.lex
 SRC_BIS = input_parser.y
-SRC_C = common.c
-SRC_CC = utils.cc symbol.cc code.cc
+SRC_C =
+SRC_CC = utils.cc symbol.cc code.cc semantic_rules.cc
 
 ifndef unittest
 	SRC_CC += main.cc

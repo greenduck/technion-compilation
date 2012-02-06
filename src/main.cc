@@ -12,7 +12,19 @@ static void parse_cmdline_args(int argc, char *argv[]);
 int main(int argc, char *argv[])
 {
 	parse_cmdline_args(argc, argv);
-	return yyparse();
+	try {
+		yyparse();
+	}
+	catch (CCompilationException& ex) {
+		cerr << "Compile error [line " << yylineno << "]: " << ex << endl;
+		return 1;
+	}
+	catch (CBugException& ex) {
+		cerr << "Internal bug " << ex << endl;
+		return 3;
+	}
+
+	return 0;
 }
 
 static void print_usage(const char *name)

@@ -10,7 +10,6 @@
 class Symbol
 {
 public:
-	string label;
 	Symbol(const string name)
 		:label(name)
 	{
@@ -19,6 +18,14 @@ public:
 	~Symbol()
 	{
 	}
+
+	string Label()
+	{
+		return label;
+	}
+
+private:
+	string label;
 };
 
 static void ScopeInfo_unittest()
@@ -48,14 +55,14 @@ static void ScopeInfo_unittest()
 		current->Add(&a2);
 		//current->Add(new Symbol("a"));
 
-		top->dbg_disp();
+		top->Disp();
 
 		current->Get("a");
 		current->Get("b");
 		current->Get("x");
 	}
-	catch (CCompilationException ex) {
-		cout << ex.String() << endl;
+	catch (CCompilationException& ex) {
+		cout << ex << endl;
 	}
 }
 
@@ -63,12 +70,14 @@ static void RXCode_unittest()
 {
 	CCodeBlock *cb = new CCodeBlock();
 
-	CSymbol *a = new CSymbol("a", CSymbol::INTEGER);
-	CSymbol *b = new CSymbol("b", CSymbol::INTEGER);
+	CSymbol *a = newSymbol("a", CSymbol::INTEGER);
+	CSymbol *b = newSymbol("b", CSymbol::INTEGER);
+	CSymbol *c = newConst("18");
 
 	cb->readi(a);
 	cb->copyi(b, a);
 	cb->prnti(b);
+	cb->prnti(c);
 	cb->halt();
 
 	for (CCodeBlock::iterator iter = cb->begin(); iter != cb->end(); ++iter) {

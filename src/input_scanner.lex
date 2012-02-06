@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "common.h"
+#include "semantic_rules.h"
 #include "input_parser.h"
 
 void scanner_error(const char *message);
@@ -107,7 +107,7 @@ whitespace	[ \t\n\r]+
 ";"				{ return SEMICOLON;
 				}
 
-{id}			{ yylval.text = strdup(yytext);
+{id}			{ yylval.text = strndup(yytext, 9);	/* (arbitrarily) limit symbol name to 9 characters */
 				  return ID;
 				}
 

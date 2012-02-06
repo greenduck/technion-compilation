@@ -1,9 +1,11 @@
 /* This is a sample code */
 program
-var a, b,c:integer;
+var	a, b,c:integer;
+	x, y :real;
 begin
 
-read(x);
-
+	x = 2;
+	x = x + y;
+	b = a + c * x;
 end
 
