@@ -45,7 +45,9 @@ enum OPCODE {
 	BREQZ,
 	BNEQZ,
 
-	HALT
+	HALT,
+
+	LABEL	/* merely a placeholder */
 };
 
 enum INSTARGS {
@@ -60,6 +62,7 @@ struct Instruction
 {
 	OPCODE opcode;
 	CSymbol *args[NARGS];
+	int size;
 
 	Instruction(OPCODE code, CSymbol *src0, CSymbol *src1, CSymbol *dest);
 	friend ostream& operator<<(ostream& os, const Instruction& cl);
@@ -125,14 +128,16 @@ public:
 	void citor(CSymbol *dest, CSymbol *src);
 	void crtoi(CSymbol *dest, CSymbol *src);
 
-	void ujump(CSymbol *dest);
-	void jlink(CSymbol *dest);
+	void ujump(CSymbol *src);
+	void jlink(CSymbol *src);
 
 	void retrn(void);
-	void breqz(CSymbol *src, CSymbol *dest);
-	void bneqz(CSymbol *src, CSymbol *dest);
+	void breqz(CSymbol *src0, CSymbol *src1);
+	void bneqz(CSymbol *src0, CSymbol *src1);
 
 	void halt(void);
+
+	void label(CSymbol *src);
 };
 
 

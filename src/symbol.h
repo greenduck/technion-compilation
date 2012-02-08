@@ -6,6 +6,7 @@
 #include <string>
 
 #include "utils.h"
+#include "linked_list.h"
 
 using namespace std;
 
@@ -99,7 +100,7 @@ private:
 
 
 
-class CSymbol
+class CSymbol : public LinkedListNode
 {
 public:
 	enum TypeID {
@@ -120,6 +121,8 @@ public:
 	bool ValueIsSet();
 	void DiscardValue();
 
+	void Patch(CSymbol *target);
+
 	friend ostream& operator<<(ostream& os, const CSymbol& sym);
 
 	static TypeID DiscoverType(const char *value);
@@ -132,6 +135,8 @@ private:
 		VALID,
 		CONST
 	};
+
+	inline CSymbol *Last() { return static_cast<CSymbol*>(LinkedListNode::Last()); }
 
 	string m_label;
 	TypeID m_typeID;

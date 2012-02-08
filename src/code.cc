@@ -48,18 +48,27 @@ Instruction::Instruction(OPCODE code, CSymbol *src0, CSymbol *src1, CSymbol *des
 	:opcode(code),
 	 args({src0, src1, dest})
 {
+	if (code < LABEL)
+		size = 1;
+	else
+		size = 0;
 }
 
 ostream& operator<<(ostream& os, const Instruction& inst)
 {
-	os << opcode_to_string[inst.opcode];
-	if (inst.args[DEST] != NULL) {
-		os << " " << *inst.args[DEST];
-	}
-	for (int i = 0; i < NARGS - 1; ++i) {
-		if (inst.args[i] != NULL) {
-			os << " " << *inst.args[i];
+	if (inst.opcode < LABEL) {
+		os << opcode_to_string[inst.opcode];
+		if (inst.args[DEST] != NULL) {
+			os << " " << *inst.args[DEST];
 		}
+		for (int i = 0; i < NARGS - 1; ++i) {
+			if (inst.args[i] != NULL) {
+				os << " " << *inst.args[i];
+			}
+		}
+	}
+	else {
+		os << *inst.args[SRC0] << ":";
 	}
 
 	return os;
@@ -378,14 +387,14 @@ void CCodeBlock::crtoi(CSymbol *dest, CSymbol *src)
 }
 
 
-void CCodeBlock::ujump(CSymbol *dest)
+void CCodeBlock::ujump(CSymbol *src)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(UJUMP, src, NULL, NULL));
 }
 
-void CCodeBlock::jlink(CSymbol *dest)
+void CCodeBlock::jlink(CSymbol *src)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(JLINK, src, NULL, NULL));
 }
 
 
@@ -394,20 +403,26 @@ void CCodeBlock::retrn(void)
 	BUG_IF(true, "Non-implemented instruction");
 }
 
-void CCodeBlock::breqz(CSymbol *src, CSymbol *dest)
+void CCodeBlock::breqz(CSymbol *src0, CSymbol *src1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(BREQZ, src0, src1, NULL));
 }
 
-void CCodeBlock::bneqz(CSymbol *src, CSymbol *dest)
+void CCodeBlock::bneqz(CSymbol *src0, CSymbol *src1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(BNEQZ, src0, src1, NULL));
 }
 
 
 void CCodeBlock::halt(void)
 {
 	m_codeDB.push_back(Instruction(HALT, NULL, NULL, NULL));
+}
+
+
+void CCodeBlock::label(CSymbol *src)
+{
+	m_codeDB.push_back(Instruction(LABEL, src, NULL, NULL));
 }
 
 

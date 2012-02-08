@@ -5,7 +5,8 @@
 #include "utils.h"
 
 CSymbol::CSymbol(const char *label, TypeID typeID)
-	:m_label(label),
+	:LinkedListNode(),
+	 m_label(label),
 	 m_typeID(typeID),
 	 m_valueStatus(INVALID),
 	 m_value(""),
@@ -15,7 +16,8 @@ CSymbol::CSymbol(const char *label, TypeID typeID)
 }
 
 CSymbol::CSymbol(const char *label, const char *value, TypeID typeID)
-	:m_label(label),
+	:LinkedListNode(),
+	 m_label(label),
 	 m_typeID(typeID),
 	 m_valueStatus(CONST),
 	 m_value(value),
@@ -30,45 +32,54 @@ CSymbol::~CSymbol()
 
 string CSymbol::Label()
 {
-	return m_label;
+	return Last()->m_label;
 }
 
 CSymbol::TypeID CSymbol::Type()
 {
-	return m_typeID;
+	return Last()->m_typeID;
 }
 
 void CSymbol::SetValue(const char *value)
 {
-	BUG_IF((m_valueStatus == CONST), "Attempt to change constant value");
+	BUG_IF((Last()->m_valueStatus == CONST), "Attempt to change constant value");
 
-	m_value = string(value);
-	m_valueStatus = VALID;
+	Last()->m_value = string(value);
+	Last()->m_valueStatus = VALID;
 }
 
 string CSymbol::GetValue()
 {
-	BUG_IF((m_valueStatus == INVALID), "Request undetermined value: " + m_label);
+	BUG_IF((Last()->m_valueStatus == INVALID), "Request undetermined value: " + Last()->m_label);
 
-	return m_value;
+	return Last()->m_value;
 }
 
 bool CSymbol::ValueIsSet()
 {
-	return (m_valueStatus >= VALID);
+	return (Last()->m_valueStatus >= VALID);
 }
 
 void CSymbol::DiscardValue()
 {
-	BUG_IF((m_valueStatus == CONST), "Attempt to discard constant value");
+	BUG_IF((Last()->m_valueStatus == CONST), "Attempt to discard constant value");
 
-	m_valueStatus = INVALID;
+	Last()->m_valueStatus = INVALID;
+}
+
+void CSymbol::Patch(CSymbol *target)
+{
+	BUG_IF((Next() != NULL), "Attempt to override write once value");
+	BUG_IF((m_valueStatus == CONST), "Attempt to override constant value");	// (?) possibly in some propagation optimizations, it is valid
+
+	AddNext(target);
 }
 
 ostream& operator<<(ostream& os, const CSymbol& sym)
 {
 	// TODO: with const. folding on, display value whenever it is known (VALID, CONST)
-	os << ((sym.m_valueStatus != CSymbol::CONST) ? sym.m_label : sym.m_value);
+	CSymbol *s = ((CSymbol)sym).Last();
+	os << ((s->m_valueStatus != CSymbol::CONST) ? s->m_label : s->m_value);
 	return os;
 }
 

@@ -2,6 +2,8 @@
 #include "utils.h"
 #include "symbol.h"
 #include "code.h"
+#include "linked_list.h"
+#include "backpatch.h"
 
 /*
  * Symbol scoping
@@ -77,7 +79,23 @@ static void RXCode_unittest()
 	cb->readi(a);
 	cb->copyi(b, a);
 	cb->prnti(b);
+
+	CSymbol *l1 = newLabel("_____");
+	CBPList *bpl1 = new CBPList(l1);
+	cb->breqz(b, l1);
+
+	cb->divdi(a, c, b);
+
+	CSymbol *l2 = newLabel("_____");
+	bpl1->Merge(l2);
+	cb->ujump(l2);
+
 	cb->prnti(c);
+
+	CSymbol *lDest = newLabel("dest");
+	bpl1->Backpatch(lDest);
+	cb->label(lDest);
+
 	cb->halt();
 
 	for (CCodeBlock::iterator iter = cb->begin(); iter != cb->end(); ++iter) {
@@ -85,10 +103,71 @@ static void RXCode_unittest()
 	}
 }
 
+static void LinkedList_unittest()
+{
+	class T : public LinkedListNode
+	{
+		public:
+			string m_value;
+
+			T(string value)
+				:LinkedListNode(),
+				 m_value(value)
+			{
+			}
+
+			~T()
+			{
+			}
+	};
+
+	T a("A");
+	T b("B");
+	T c("C");
+	T d("D");
+	T e("E");
+	T f("F");
+
+	b.AddNext(&d);
+	b.AddPrev(&a);
+	d.AddNext(&c);
+	c.AddNext(&f);
+	c.AddNext(&e);
+
+	cout << "First: " << static_cast<T*>(a.First())->m_value << endl;
+	cout << "Last: " << static_cast<T*>(a.Last())->m_value << endl;
+
+	cout << "All (top-down):" << endl;
+	{
+		T *x;
+		T::TopDown it(&a);
+		while ((x = static_cast<T*>(it.FetchAndAdvance())) != NULL) {
+			cout << x->m_value << " ";
+		}
+		cout << endl;
+	}
+
+	cout << "All (bottom-up):" << endl;
+	{
+		T *x;
+		T::BottomUp it(a.Last());
+		while ((x = static_cast<T*>(it.FetchAndAdvance())) != NULL) {
+			cout << x->m_value << " ";
+		}
+		cout << endl;
+	}
+}
+
 int main()
 {
-	ScopeInfo_unittest();
-	RXCode_unittest();
+	try {
+		ScopeInfo_unittest();
+		RXCode_unittest();
+		LinkedList_unittest();
+	}
+	catch (CException &ex) {
+		cerr << ex << endl;
+	}
 	return 0;
 }
 
