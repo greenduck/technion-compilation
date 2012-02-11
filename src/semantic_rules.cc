@@ -31,3 +31,16 @@ void dcl_applySymbols(IDQueue *symbols, CSymbol::TypeID typeID)
 	}
 }
 
+SBpfac bpfac_relOp(const char *op, CSymbol *p1, CSymbol *p2)
+{
+	CSymbol *cmp = newTemp(CSymbol::INTEGER);
+	CSymbol *truelabel = newLabel("_____");
+	CSymbol *falselabel = newLabel("_____");
+
+	emit.comp(op, cmp, p1, p2);
+	emit.breqz(cmp, falselabel);
+	emit.ujump(truelabel);
+
+	return (SBpfac){ new CBPList(truelabel), new CBPList(falselabel) };
+}
+

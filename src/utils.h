@@ -46,7 +46,7 @@ class CCompilationException : public CException
 {
 public:
 	CCompilationException(const string message)
-		: CException(message)
+		:CException(message)
 	{
 	}
 };
@@ -56,7 +56,7 @@ class CBugException : public CException
 {
 public:
 	CBugException(const string message)
-		: CException(message)
+		:CException(message)
 	{
 	}
 };

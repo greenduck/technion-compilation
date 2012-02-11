@@ -19,6 +19,12 @@
 	SStmt		_stmt;
 	SList		_list;
 	SBlk		_blk;
+	SBpfac		_bpfac;
+	SBfac		_bfac;
+	SBterm		_bterm;
+	SBexp		_bexp;
+	SCntrl		_cntrl;
+	SM1		_m1;
 }
 
 %token PROGRAM
@@ -68,17 +74,19 @@
 %type <idQueue> idents
 %type <_stmt> stmt
 // %type <node> assn
-//-%type <node> cntrl
+%type <_cntrl> cntrl
 //-%type <node> read
 //-%type <node> write
 //-%type <node> return
 %type <_exp> exp
-//-%type <node> bexp
-//-%type <node> bterm
-//-%type <node> bfac
-//-%type <node> bpfac
+%type <_bexp> bexp
+%type <_bterm> bterm
+%type <_bfac> bfac
+%type <_bpfac> bpfac
 %type <_term> term
 %type <_factor> factor
+
+%type <_m1> m1
 
 %right IF THEN ELSE
 
@@ -92,14 +100,15 @@ program		: function main_function		{ currentScope->Disp();
 		;
 
 main_function	: PROGRAM blk				{ if ($2.nextlist != NULL) {
-								/*$2.nextlist->backpatch();*/
+								CSymbol *label = newLabel("halt");
+								emit.label(label);
+								$2.nextlist->Backpatch(label);
 							  }
 							  emit.halt();
 							}
 		;
 
-function	: func_ret func_arg blk			{ BUG_IF(true, "Non-implemented case");
-							}
+function	: func_ret func_arg blk			{ BUG_IF(true, "Non-implemented case"); }
 		| /* eps */				{ }
 		;
 
@@ -108,8 +117,7 @@ func_arg	: LPAREN ID COLON type COMMA ID COLON type RPAREN	{
 							}
 		;
 
-func_ret	: type FUNCTION				{ BUG_IF(true, "Non-implemented case");
-							}
+func_ret	: type FUNCTION				{ BUG_IF(true, "Non-implemented case"); }
 		;
 
 blk		: m0 declarations BEGIN_ list END	{ $$.nextlist = $4.nextlist;
@@ -142,12 +150,15 @@ type		: INTEGER				{ $$ = CSymbol::INTEGER; }
 		| REAL					{ $$ = CSymbol::REAL; }
 		;
 
-list		: list stmt				{ $$.nextlist = NULL;/*$1.nextlist->merge($2.nextlist);*/ }
+list		: list m1 stmt				{ if ($1.nextlist != NULL)
+								$1.nextlist->Backpatch($2.label);
+							  $$.nextlist = $3.nextlist;
+							}
 		| /* eps */				{ $$.nextlist = NULL; }
 		;
 
 stmt		: assn					{ $$.nextlist = NULL; }
-		| cntrl					{ BUG_IF(true, "Non-implemented case"); }
+		| cntrl					{ $$.nextlist = $1.nextlist; }
 		| read					{ BUG_IF(true, "Non-implemented case"); }
 		| write					{ BUG_IF(true, "Non-implemented case"); }
 		| return				{ BUG_IF(true, "Non-implemented case"); }
@@ -169,40 +180,55 @@ read		: READ LPAREN ID RPAREN SEMICOLON	{ BUG_IF(true, "Non-implemented case");
 assn		: ID ASSIGN exp SEMICOLON		{ emit.copy(currentScope->Get($1), $3.place); }
 		;
 
-cntrl		: IF bexp THEN stmt ELSE stmt		{ BUG_IF(true, "Non-implemented case");
+cntrl		: IF bexp THEN m1 stmt ELSE m1 stmt	{ BUG_IF(true, "Non-implemented case"); }
+		| IF bexp THEN m1 stmt			{ $2.truelist->Backpatch($4.label);
+							  if ($5.nextlist == NULL) {
+								CSymbol *next = newLabel("_____");
+								emit.ujump(next);
+								$5.nextlist = new CBPList(next);
+							  }
+							  $$.nextlist = $2.falselist->Merge($5.nextlist);
 							}
-		| IF bexp THEN stmt			{ BUG_IF(true, "Non-implemented case");
-							}
+
 		| FOR LPAREN stmt bexp SEMICOLON stmt RPAREN stmt	{
 				    			  BUG_IF(true, "Non-implemented case");
 							}
-		| WHILE bexp DO stmt			{ BUG_IF(true, "Non-implemented case");
+		| WHILE bexp DO stmt			{ BUG_IF(true, "Non-implemented case"); }
+		;
+
+bexp		: bexp OR m1 bterm			{ $$.truelist = $1.truelist->Merge($4.truelist);
+							  $1.falselist->Backpatch($3.label);
+							  $$.falselist = $4.falselist;
+							}
+		| bterm					{ $$.truelist = $1.truelist;
+							  $$.falselist = $1.falselist;
 							}
 		;
 
-bexp		: bexp OR bterm				{ BUG_IF(true, "Non-implemented case");
+bterm		: bterm AND m1 bfac			{ $1.truelist->Backpatch($3.label);
+							  $$.truelist = $4.truelist;
+							  $$.falselist = $1.falselist->Merge($4.falselist);
 							}
-		| bterm					{ BUG_IF(true, "Non-implemented case"); }
-		;
-
-bterm		: bterm AND bfac			{ BUG_IF(true, "Non-implemented case");
-							}
-		| bfac					{ BUG_IF(true, "Non-implemented case"); }
-		;
-
-bfac		: NOT bfac				{ BUG_IF(true, "Non-implemented case");
-							}
-		| bpfac					{ BUG_IF(true, "Non-implemented case"); }
-		;
-
-bpfac		: exp RELOP exp				{ BUG_IF(true, "Non-implemented case");
-							}
-		| LPAREN bexp RPAREN			{ BUG_IF(true, "Non-implemented case");
+		| bfac					{ $$.truelist = $1.truelist;
+							  $$.falselist = $1.falselist;
 							}
 		;
 
-exp		: CALL LPAREN exp COMMA exp RPAREN	{ BUG_IF(true, "Non-implemented case");
+bfac		: NOT bfac				{ $$.truelist = $2.falselist;
+							  $$.falselist = $2.truelist;
 							}
+		| bpfac					{ $$.truelist = $1.truelist;
+							  $$.falselist = $1.falselist;
+							}
+		;
+
+bpfac		: exp RELOP exp				{ $$ = bpfac_relOp($2, $1.place, $3.place); }
+		| LPAREN bexp RPAREN			{ $$.truelist = $2.truelist;
+							  $$.falselist = $2.falselist;
+							}
+		;
+
+exp		: CALL LPAREN exp COMMA exp RPAREN	{ BUG_IF(true, "Non-implemented case"); }
 		| exp ADDOP term			{ $$.place = newTemp(DestSymbolType($1.place, $3.place));
 							  emit.arith($2, $$.place, $1.place, $3.place);
 							}
@@ -222,6 +248,11 @@ factor		: LPAREN exp RPAREN			{ $$.place = $2.place; }
 
 	/* markers */
 m0		:					{ blk_enter(); }
+		;
+
+m1		:					{ $$.label = newLabel("m");
+							  emit.label($$.label);
+							}
 		;
 
 %%

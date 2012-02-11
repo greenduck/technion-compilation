@@ -4,6 +4,7 @@
 #include <queue>
 #include "symbol.h"
 #include "code.h"
+#include "backpatch.h"
 
 using namespace std;
 
@@ -22,15 +23,43 @@ struct SExp {
 };
 
 struct SStmt {
-	void *nextlist;
+	CBPList *nextlist;
 };
 
 struct SList {
-	void *nextlist;
+	CBPList *nextlist;
 };
 
 struct SBlk {
-	void *nextlist;
+	CBPList *nextlist;
+};
+
+struct SBpfac {
+	CBPList *truelist;
+	CBPList *falselist;
+};
+
+struct SBfac {
+	CBPList *truelist;
+	CBPList *falselist;
+};
+
+struct SBterm {
+	CBPList *truelist;
+	CBPList *falselist;
+};
+
+struct SBexp {
+	CBPList *truelist;
+	CBPList *falselist;
+};
+
+struct SCntrl {
+	CBPList *nextlist;
+};
+
+struct SM1 {
+	CSymbol *label;
 };
 
 extern SymbolScope *currentScope;
@@ -39,6 +68,7 @@ extern CCodeBlock emit;
 void blk_enter();
 void blk_exit();
 void dcl_applySymbols(IDQueue *symbols, CSymbol::TypeID typeID);
+SBpfac bpfac_relOp(const char *op, CSymbol *p1, CSymbol *p2);
 
 #endif	// _SEMANTIC_RULES_H
 

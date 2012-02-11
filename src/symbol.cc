@@ -78,7 +78,7 @@ void CSymbol::Patch(CSymbol *target)
 ostream& operator<<(ostream& os, const CSymbol& sym)
 {
 	// TODO: with const. folding on, display value whenever it is known (VALID, CONST)
-	CSymbol *s = ((CSymbol)sym).Last();
+	CSymbol *s = ((CSymbol)sym).Last();	/* cast away 'const' ... */
 	os << ((s->m_valueStatus != CSymbol::CONST) ? s->m_label : s->m_value);
 	return os;
 }

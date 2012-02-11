@@ -99,7 +99,7 @@ void CCodeBlock::copy(CSymbol *dest, CSymbol *src)
 	switch (flag)
 	{
 	case 3:	copyi(dest, src);	break;
-	case 2:	crtoi(dest, src);	break;
+	case 2:	throw CCompilationException("Type mismatch between lvalue (" + dest->Label() + ") and rvalue (" + src->Label() + ")");
 	case 1:	citor(dest, src);	break;
 	case 0:	copyr(dest, src);	break;
 	}
@@ -170,12 +170,8 @@ void CCodeBlock::arith(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *sr
 {
 	CSymbol *a;
 	CSymbol *b;
-	CSymbol *c;
 
-	if (dest->Type() != DestSymbolType(src0, src1))
-		c = newTemp(CSymbol::REAL);
-	else
-		c = dest;
+	BUG_IF((dest->Type() != DestSymbolType(src0, src1)), "Type mismatch between destination and source in arithmetic operation");
 
 	int flag = ((src0->Type() == CSymbol::INTEGER) << 1) | (src1->Type() == CSymbol::INTEGER);
 	switch (flag)
@@ -201,10 +197,10 @@ void CCodeBlock::arith(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *sr
 	case 3:
 		switch (op[0])
 		{
-		case '*':	multi(c, a, b);	break;
-		case '/':	divdi(c, a, b);	break;
-		case '+':	add2i(c, a, b);	break;
-		case '-':	subti(c, a, b);	break;
+		case '*':	multi(dest, a, b);	break;
+		case '/':	divdi(dest, a, b);	break;
+		case '+':	add2i(dest, a, b);	break;
+		case '-':	subti(dest, a, b);	break;
 		}
 		break;
 
@@ -213,16 +209,13 @@ void CCodeBlock::arith(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *sr
 	case 0:
 		switch (op[0])
 		{
-		case '*':	multr(c, a, b);	break;
-		case '/':	divdr(c, a, b);	break;
-		case '+':	add2r(c, a, b);	break;
-		case '-':	subtr(c, a, b);	break;
+		case '*':	multr(dest, a, b);	break;
+		case '/':	divdr(dest, a, b);	break;
+		case '+':	add2r(dest, a, b);	break;
+		case '-':	subtr(dest, a, b);	break;
 		}
 		break;
 	}
-
-	if (dest->Type() != DestSymbolType(src0, src1))
-		crtoi(dest, c);
 }
 
 void CCodeBlock::load(CSymbol *dest, CSymbol *addr0, CSymbol *addr1)
@@ -261,22 +254,22 @@ void CCodeBlock::readi(CSymbol *dest)
 
 void CCodeBlock::sequi(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(SEQUI, src0, src1, dest));
 }
 
 void CCodeBlock::sneqi(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(SNEQI, src0, src1, dest));
 }
 
 void CCodeBlock::sleti(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(SLETI, src0, src1, dest));
 }
 
 void CCodeBlock::sgrti(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(SGRTI, src0, src1, dest));
 }
 
 void CCodeBlock::add2i(CSymbol *dest, CSymbol *src0, CSymbol *src1)
@@ -327,22 +320,22 @@ void CCodeBlock::readr(CSymbol *dest)
 
 void CCodeBlock::sequr(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(SEQUR, src0, src1, dest));
 }
 
 void CCodeBlock::sneqr(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(SNEQR, src0, src1, dest));
 }
 
 void CCodeBlock::sletr(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(SLETR, src0, src1, dest));
 }
 
 void CCodeBlock::sgrtr(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(SGRTR, src0, src1, dest));
 }
 
 void CCodeBlock::add2r(CSymbol *dest, CSymbol *src0, CSymbol *src1)

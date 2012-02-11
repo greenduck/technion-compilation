@@ -14,7 +14,7 @@ OBJDIR = ../obj
 BINDIR = ../bin
 OUTFILE = $(BINDIR)/rcc
 
-CCX = g++
+CCX = @g++
 CFLAGS = -Wall -I$(SRCDIR) -I$(OBJDIR) -g
 LFLAGS = -Wall
 COMPILE = $(CCX) $(CFLAGS)
@@ -39,10 +39,10 @@ toycompiler: $(GENSRC_BIS) $(GENSRC_LEX) $(OBJS)
 	$(LINK) $(OBJS) -o $(OUTFILE)
 
 $(GENSRC_LEX): $(SRC_LEX)
-	flex -o$@ $<
+	@flex -o$@ $<
 
 $(GENSRC_BIS): $(SRC_BIS)
-	bison -dv -o $@ $<
+	@bison -dv -o $@ $<
 
 $(OBJDIR)/%.o: $(OBJDIR)/%.c
 	$(COMPILE) -c $+ -o $@

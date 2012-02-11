@@ -5,7 +5,7 @@ OBJDIR = ../../obj
 BINDIR = ../../bin
 OUTFILE = $(BINDIR)/rx
 
-CCX = gcc
+CCX = @gcc
 CFLAGS = -Wall -g
 LFLAGS = -Wall
 COMPILE = $(CCX) $(CFLAGS)
