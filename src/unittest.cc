@@ -4,6 +4,7 @@
 #include "code.h"
 #include "linked_list.h"
 #include "backpatch.h"
+#include "storage.h"
 
 /*
  * Symbol scoping
@@ -158,12 +159,32 @@ static void LinkedList_unittest()
 	}
 }
 
+void Storage_unittest()
+{
+	CRegAlloc regs(8, (const int[]){0, 1, 3, CRegAlloc::NOREG});
+
+	int a = regs.Acquire();
+	int b = regs.Acquire();
+	int c = regs.Acquire();
+	regs.Release(b);
+	int d = regs.Acquire();
+	int e = regs.Acquire(d);
+	regs.Release(e);
+	int f = regs.Acquire();
+	int g = regs.Acquire();
+	int h = regs.Acquire();
+
+	printf("          %d, %d, %d, %d, %d, %d \n", a, c, d, f, g, h);
+	printf("expected: 2, 5, 4, 6, 7, -1 \n");
+}
+
 int main()
 {
 	try {
 		ScopeInfo_unittest();
 		RXCode_unittest();
 		LinkedList_unittest();
+		Storage_unittest();
 	}
 	catch (CException &ex) {
 		cerr << ex << endl;

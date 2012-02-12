@@ -5,6 +5,7 @@
 #include "symbol.h"
 #include "code.h"
 #include "backpatch.h"
+#include "storage.h"
 
 using namespace std;
 
@@ -64,6 +65,7 @@ struct SM1 {
 
 extern SymbolScope *currentScope;
 extern CCodeBlock emit;
+extern CRegAlloc *regPool[2];
 
 void blk_enter();
 void blk_exit();
