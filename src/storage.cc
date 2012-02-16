@@ -38,6 +38,15 @@ int CRegAlloc::Acquire(int addr)
 	return addr;
 }
 
+int CRegAlloc::AcquireOrThrow()
+{
+	int reg = Acquire();
+	if (reg == NOREG)
+		throw CCompilationException("Well, this is embarrassing. We are out of registers.");
+
+	return reg;
+}
+
 bool CRegAlloc::Release(int addr)
 {
 	BUG_IF((m_allocTable[addr] <= 0), "Attempt to release not allocated register: " + addr);

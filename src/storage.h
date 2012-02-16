@@ -14,6 +14,7 @@ public:
 
 	int Acquire();
 	int Acquire(int addr);
+	int AcquireOrThrow();
 	bool Release(int addr);
 	int RefCount(int addr);
 

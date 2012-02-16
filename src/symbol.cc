@@ -2,6 +2,8 @@
 #include <iostream>
 
 #include "symbol.h"
+#include "storage.h"
+#include "semantic_rules.h"
 #include "utils.h"
 
 CSymbol::CSymbol(const char *label, TypeID typeID)
@@ -75,11 +77,33 @@ void CSymbol::Patch(CSymbol *target)
 	AddNext(target);
 }
 
+void CSymbol::Register(int reg)
+{
+	BUG_IF((m_regalloc != CRegAlloc::NOREG), "Attempt to override write once value");
+	m_regalloc = reg;
+}
+
+int CSymbol::Register()
+{
+	return m_regalloc;
+}
+
 ostream& operator<<(ostream& os, const CSymbol& sym)
 {
+	const char *reg_to_string[] = {"I", "R"};
+
 	// TODO: with const. folding on, display value whenever it is known (VALID, CONST)
 	CSymbol *s = ((CSymbol)sym).Last();	/* cast away 'const' ... */
-	os << ((s->m_valueStatus != CSymbol::CONST) ? s->m_label : s->m_value);
+	if (s->m_valueStatus == CSymbol::CONST) {
+		os << s->m_value;
+	}
+	else if (s->m_regalloc != CRegAlloc::NOREG) {
+		os << reg_to_string[s->Type()] << s->m_regalloc;
+	}
+	else {
+		os << s->m_label;
+	}
+
 	return os;
 }
 
@@ -110,7 +134,9 @@ const char *CSymbol::NumericToString(float value)
 
 CSymbol *newSymbol(const char *name, CSymbol::TypeID typeID)
 {
-	return new CSymbol(name, typeID);
+	CSymbol *sym = new CSymbol(name, typeID);
+	sym->Register( regPool[typeID]->AcquireOrThrow() );
+	return sym;
 }
 
 CSymbol *newTemp(CSymbol::TypeID typeID)
@@ -119,7 +145,9 @@ CSymbol *newTemp(CSymbol::TypeID typeID)
 	char name[64];
 
 	snprintf(name, sizeof(name), "@tmp.%d", tempIndex++);
-	return new CSymbol(name, typeID);
+	CSymbol *sym = new CSymbol(name, typeID);
+	sym->Register( regPool[typeID]->AcquireOrThrow() );
+	return sym;
 }
 
 

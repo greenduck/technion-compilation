@@ -5,8 +5,8 @@
 SymbolScope *currentScope = NULL;
 CCodeBlock emit;
 CRegAlloc *regPool[2] = {
-	new CRegAlloc(1000, (const int[]){0, 1, 2}),	// INTEGER
-	new CRegAlloc(1000)								// REAL
+	new CRegAlloc(1000, (const int[]){0, 1, 2, CRegAlloc::NOREG}),	// INTEGER
+	new CRegAlloc(1000)												// REAL
 };
 
 void blk_enter()

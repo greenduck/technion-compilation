@@ -123,6 +123,9 @@ public:
 
 	void Patch(CSymbol *target);
 
+	void Register(int reg);
+	int Register();
+
 	friend ostream& operator<<(ostream& os, const CSymbol& sym);
 
 	static TypeID DiscoverType(const char *value);
