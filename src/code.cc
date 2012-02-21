@@ -3,46 +3,13 @@
 #include "utils.h"
 #include "semantic_rules.h"
 
+#ifdef X
+#undef X
+#endif
+#define X(code)	#code,
+
 static const char *opcode_to_string[] = {
-	"COPYI",
-	"PRNTI",
-	"READI",
-	"SEQUI",
-	"SNEQI",
-	"SLETI",
-	"SGRTI",
-	"ADD2I",
-	"SUBTI",
-	"MULTI",
-	"DIVDI",
-	"LOADI",
-	"STORI",
-
-	"COPYR",
-	"PRNTR",
-	"READR",
-	"SEQUR",
-	"SNEQR",
-	"SLETR",
-	"SGRTR",
-	"ADD2R",
-	"SUBTR",
-	"MULTR",
-	"DIVDR",
-	"LOADR",
-	"STORR",
-
-	"CITOR",
-	"CRTOI",
-
-	"UJUMP",
-	"JLINK",
-
-	"RETRN",
-	"BREQZ",
-	"BNEQZ",
-
-	"HALT"
+	OPCODES
 };
 
 Instruction::Instruction(OPCODE code, CSymbol *src0, CSymbol *src1, CSymbol *dest)
@@ -100,12 +67,31 @@ void CCodeBlock::Splice(CSymbol *marker, CCodeBlock& subBlock)
 }
 
 
-void CCodeBlock::Disp()
+void CCodeBlock::Disp(ostream& os)
 {
-	for (CCodeBlock::iterator it = begin(); it != end(); ++it) {
-		dbgout << *it << "\n";
+	for (CCodeBlock::iterator inst = begin(); inst != end(); ++inst) {
+		if ((os == dbgout) || (inst->size > 0)) {
+			os << *inst << "\n";
+		}
 	}
 }
+
+
+int CCodeBlock::CalcLabelAddress(int startAddr)
+{
+	int currentAddr = startAddr;
+	for (CCodeBlock::iterator inst = begin(); inst != end(); ++inst) {
+		if (inst->opcode == LABEL) {
+			CSymbol *label = inst->args[SRC0];
+			label->SetValue(CSymbol::NumericToString(currentAddr));
+		}
+
+		currentAddr += inst->size;
+	}
+
+	return currentAddr;
+}
+
 
 
 void CCodeBlock::copy(CSymbol *dest, CSymbol *src)
@@ -243,10 +229,30 @@ void CCodeBlock::load(CSymbol *dest, CSymbol *addr0, CSymbol *addr1)
 
 void CCodeBlock::stor(CSymbol *src, CSymbol *addr0, CSymbol *addr1)
 {
-	if (src->Type() == CSymbol::INTEGER)
-		stori(src, addr0, addr1);
-	else
-		storr(src, addr0, addr1);
+	CSymbol *a;
+
+	if (src->Type() == CSymbol::INTEGER) {
+		if (src->ValueIsSet()) {
+			a = newTemp(CSymbol::INTEGER);
+			copyi(a, src);
+			stori(a, addr0, addr1);
+			regPool[CSymbol::INTEGER]->Release(a->Register());
+		}
+		else {
+			stori(src, addr0, addr1);
+		}
+	}
+	else {
+		if (src->ValueIsSet()) {
+			a = newTemp(CSymbol::REAL);
+			copyr(a, src);
+			storr(a, addr0, addr1);
+			regPool[CSymbol::REAL]->Release(a->Register());
+		}
+		else {
+			storr(src, addr0, addr1);
+		}
+	}
 }
 
 void CCodeBlock::push(int argc, ...)
@@ -337,11 +343,10 @@ void CCodeBlock::store_retval(CSymbol *src)
 	emit.stor(src, currentScope->Get("@FP"), newConst(0));
 }
 
-
-// TODO:
-// Assert that each parameter has right type
+/* ----- */
 void CCodeBlock::copyi(CSymbol *dest, CSymbol *src)
 {
+	
 	m_codeDB.push_back(Instruction(COPYI, src, NULL, dest));
 }
 

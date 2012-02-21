@@ -110,9 +110,8 @@ ostream& operator<<(ostream& os, const CSymbol& sym)
 {
 	const char *reg_to_string[] = {"I", "R"};
 
-	// TODO: with const. folding on, display value whenever it is known (VALID, CONST)
 	CSymbol *s = ((CSymbol)sym).Last();	/* cast away 'const' ... */
-	if (s->m_valueStatus == CSymbol::CONST) {
+	if (s->m_valueStatus == CSymbol::CONST || s->m_valueStatus == CSymbol::VALID) {
 		os << s->m_value;
 	}
 	else if (s->m_regalloc != CRegAlloc::NOREG) {

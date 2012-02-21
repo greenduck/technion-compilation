@@ -8,48 +8,56 @@
 
 #include "symbol.h"
 
+#define OPCODES	\
+	X(COPYI)	\
+	X(PRNTI)	\
+	X(READI)	\
+	X(SEQUI)	\
+	X(SNEQI)	\
+	X(SLETI)	\
+	X(SGRTI)	\
+	X(ADD2I)	\
+	X(SUBTI)	\
+	X(MULTI)	\
+	X(DIVDI)	\
+	X(LOADI)	\
+	X(STORI)	\
+				\
+	X(COPYR)	\
+	X(PRNTR)	\
+	X(READR)	\
+	X(SEQUR)	\
+	X(SNEQR)	\
+	X(SLETR)	\
+	X(SGRTR)	\
+	X(ADD2R)	\
+	X(SUBTR)	\
+	X(MULTR)	\
+	X(DIVDR)	\
+	X(LOADR)	\
+	X(STORR)	\
+				\
+	X(CITOR)	\
+	X(CRTOI)	\
+				\
+	X(UJUMP)	\
+	X(JLINK)	\
+				\
+	X(RETRN)	\
+	X(BREQZ)	\
+	X(BNEQZ)	\
+				\
+	X(HALT)		\
+				\
+	X(LABEL)		/* merely a placeholder */
+
+#ifdef X
+#undef X
+#endif
+#define X(code)	code,
+
 enum OPCODE {
-	COPYI = 0,
-	PRNTI,
-	READI,
-	SEQUI,
-	SNEQI,
-	SLETI,
-	SGRTI,
-	ADD2I,
-	SUBTI,
-	MULTI,
-	DIVDI,
-	LOADI,
-	STORI,
-
-	COPYR,
-	PRNTR,
-	READR,
-	SEQUR,
-	SNEQR,
-	SLETR,
-	SGRTR,
-	ADD2R,
-	SUBTR,
-	MULTR,
-	DIVDR,
-	LOADR,
-	STORR,
-
-	CITOR,
-	CRTOI,
-
-	UJUMP,
-	JLINK,
-
-	RETRN,
-	BREQZ,
-	BNEQZ,
-
-	HALT,
-
-	LABEL	/* merely a placeholder */
+	OPCODES
 };
 
 enum INSTARGS {
@@ -89,7 +97,8 @@ public:
     inline iterator end() { return m_codeDB.end(); }
 
 	void Splice(CSymbol *marker, CCodeBlock& subBlock);
-	void Disp();
+	void Disp(ostream& os = dbgout);
+	int CalcLabelAddress(int startAddr);
 
 	// instruction implementation
 	// convenience macro instructions

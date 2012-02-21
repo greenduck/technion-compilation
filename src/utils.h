@@ -6,6 +6,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 
 
 
@@ -70,8 +71,11 @@ public:
 
 
 // output objects
-extern ostream &machout;
-extern ostream &dbgout;
+extern filebuf outfileFb;
+extern ostream machout;
+
+extern filebuf dbgfileFb;
+extern ostream dbgout;
 
 #endif	// _UTILS_H
 

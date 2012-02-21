@@ -6,7 +6,7 @@ BINDIR = ../../bin
 OUTFILE = $(BINDIR)/rx
 
 CCX = @gcc
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g #-DDEBUG
 LFLAGS = -Wall
 COMPILE = $(CCX) $(CFLAGS)
 LINK = $(CCX) $(LFLAGS)

@@ -28,12 +28,12 @@ CBugException::CBugException(const string message)
 		char *end = NULL;
 
 		for (char *p = names[i]; *p && end == NULL; ++p) {
-			if (*p == '(')
-				mangled_name = p;
-			else if (*p == '+')
-				begin = p;
-			else if (*p == ')')
-				end = p;
+			switch (*p)
+			{
+			case '(':	mangled_name = p;	break;
+			case '+':	begin = p;			break;
+			case ')':	end = p;			break;
+			}
 		}
 
 		if (mangled_name && begin && end && mangled_name < begin) {
@@ -67,6 +67,9 @@ ostream& operator<<(ostream& os, const CException& ex)
 
 
 // output objects
-ostream &machout(std::cout);
-ostream &dbgout(std::cout);
+filebuf outfileFb;
+ostream machout(&outfileFb);
+
+filebuf dbgfileFb;
+ostream dbgout(&dbgfileFb);
 

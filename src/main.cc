@@ -16,8 +16,10 @@ int main(int argc, char *argv[])
 	try {
 		yyparse();
 
-		currentScope->Disp();
-		emit.Disp();
+		// currentScope->Disp();
+
+		emit.CalcLabelAddress(1);
+		emit.Disp(machout);
 	}
 	catch (CCompilationException& ex) {
 		cerr << "Compile error [line " << yylineno << "]: " << ex << endl;
@@ -87,15 +89,17 @@ static void parse_cmdline_args(int argc, char *argv[])
 
 	// redirect output: stdout -> outfile
 	if (outfile != NULL) {
-		filebuf *fb = new(filebuf);	// no delete
-		fb->open(outfile, ios_base::out | ios_base::trunc);
-		machout.rdbuf(fb);
+		outfileFb.open(outfile, ios_base::out | ios_base::trunc);
+	}
+	else {
+		machout.rdbuf(cout.rdbuf());
 	}
 
 	if (dbgfile != NULL) {
-		filebuf *fb = new(filebuf);	// no delete
-		fb->open(dbgfile, ios_base::out | ios_base::trunc);
-		dbgout.rdbuf(fb);
+		dbgfileFb.open(dbgfile, ios_base::out | ios_base::trunc);
+	}
+	else {
+		dbgout.rdbuf(cout.rdbuf());
 	}
 }
 
