@@ -47,6 +47,14 @@ int CRegAlloc::AcquireOrThrow()
 	return reg;
 }
 
+/* Used for collecting register usage information by mirroring allocations.
+ */
+int CRegAlloc::Mirror(int addr)
+{
+	++m_allocTable[addr];
+	return addr;
+}
+
 bool CRegAlloc::Release(int addr)
 {
 	BUG_IF((m_allocTable[addr] <= 0), "Attempt to release not allocated register: " + addr);
@@ -58,7 +66,21 @@ bool CRegAlloc::Release(int addr)
 
 int CRegAlloc::RefCount(int addr)
 {
-	BUG_IF((m_allocTable[addr] <= 0), "Attempt to get status of not allocated register: " + addr);
 	return m_allocTable[addr];
+}
+
+int CRegAlloc::FirstAllocated()
+{
+	return NextAllocated(NOREG);
+}
+
+int CRegAlloc::NextAllocated(int current)
+{
+	for (int i = current + 1; i < m_size; ++i) {
+		if (m_allocTable[i] > 0)
+			return i;
+	}
+
+	return NOREG;
 }
 

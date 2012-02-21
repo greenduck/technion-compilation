@@ -5,6 +5,7 @@
 #include "linked_list.h"
 #include "backpatch.h"
 #include "storage.h"
+#include "semantic_rules.h"
 
 /*
  * Symbol scoping
@@ -71,6 +72,8 @@ static void ScopeInfo_unittest()
 
 static void RXCode_unittest()
 {
+	program_init();
+
 	CCodeBlock *cb = new CCodeBlock();
 
 	CSymbol *a = newSymbol("a", CSymbol::INTEGER);
@@ -96,6 +99,11 @@ static void RXCode_unittest()
 	CSymbol *lDest = newLabel("dest");
 	bpl1->Backpatch(lDest);
 	cb->label(lDest);
+
+	cb->label(newLabel("push"));
+	cb->push(4, a, b, c, currentScope->Get("@FP"));
+	cb->label(newLabel("pop"));
+	cb->pop(4, a, b, NULL, currentScope->Get("@FP"));
 
 	cb->halt();
 

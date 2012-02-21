@@ -6,6 +6,24 @@
 #include "semantic_rules.h"
 #include "utils.h"
 
+
+
+SymbolScope::SymbolScope(SymbolScope *parent)
+	:CScopeInfo<CSymbol>(parent)
+{
+	// mirror register allocations
+	regUsage[CSymbol::INTEGER] = new CRegAlloc(NREGS);
+	regUsage[CSymbol::REAL] = new CRegAlloc(NREGS);
+}
+
+SymbolScope::~SymbolScope()
+{
+	delete regUsage[CSymbol::INTEGER];
+	delete regUsage[CSymbol::REAL];
+}
+
+
+
 CSymbol::CSymbol(const char *label, TypeID typeID)
 	:LinkedListNode(),
 	 m_label(label),
@@ -135,7 +153,7 @@ const char *CSymbol::NumericToString(float value)
 CSymbol *newSymbol(const char *name, CSymbol::TypeID typeID)
 {
 	CSymbol *sym = new CSymbol(name, typeID);
-	sym->Register( regPool[typeID]->AcquireOrThrow() );
+	sym->Register( currentScope->regUsage[typeID]->Mirror( regPool[typeID]->AcquireOrThrow() ) );
 	return sym;
 }
 
@@ -146,11 +164,15 @@ CSymbol *newTemp(CSymbol::TypeID typeID)
 
 	snprintf(name, sizeof(name), "@tmp.%d", tempIndex++);
 	CSymbol *sym = new CSymbol(name, typeID);
-	sym->Register( regPool[typeID]->AcquireOrThrow() );
+	sym->Register( currentScope->regUsage[typeID]->Mirror( regPool[typeID]->AcquireOrThrow() ) );
 	return sym;
 }
 
 
+/* TODO:
+ * build some persistent map that would allow re-using constant values, 
+ * instead of allocating repeating values 
+ */
 CSymbol *newConst(const char *value)
 {
 	return new CSymbol("", value, CSymbol::DiscoverType(value));
@@ -167,6 +189,14 @@ CSymbol *newConst(float value)
 }
 
 
+CSymbol *regSymbol(const char *label, CSymbol::TypeID typeID, int regID)
+{
+	CSymbol *sym = new CSymbol(label, typeID);
+	sym->Register(regID);
+	return sym;
+}
+
+
 CSymbol *newLabel(const char *prefix)
 {
 	static int labelIndex = 0;
@@ -174,5 +204,21 @@ CSymbol *newLabel(const char *prefix)
 
 	snprintf(name, sizeof(name), "L%s.%d", prefix, labelIndex++);
 	return new CSymbol(name, CSymbol::LABEL);
+}
+
+
+
+CFuncSymbol::CFuncSymbol(const char *label, TypeID retType)
+	:CSymbol(label, "2", retType)
+{
+}
+
+CFuncSymbol::~CFuncSymbol()
+{
+}
+
+void CFuncSymbol::AddArgument(CSymbol *arg)
+{
+	m_arguments.push_back(arg);
 }
 

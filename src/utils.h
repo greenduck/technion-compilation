@@ -37,8 +37,8 @@ public:
 
 	friend ostream& operator<<(ostream& os, const CException& ex);
 
-private:
-	const string m_string;
+protected:
+	string m_string;
 };
 
 // error in code being compiled
@@ -55,10 +55,7 @@ public:
 class CBugException : public CException
 {
 public:
-	CBugException(const string message)
-		:CException(message)
-	{
-	}
+	CBugException(const string message);
 };
 
 #define BUG_IF(cond, msg)													\

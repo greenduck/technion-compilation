@@ -24,7 +24,9 @@
 	SBterm		_bterm;
 	SBexp		_bexp;
 	SCntrl		_cntrl;
+	SReturn		_return;
 	SM1		_m1;
+	SM2		_m2;
 }
 
 %token PROGRAM
@@ -61,11 +63,11 @@
 %token <text> RELOP
 
 %start program
-//-%type <node> function
+// %type <node> function
 // %type <node> main_function
 %type <_blk> blk
-//-%type <node> func_ret
-//-%type <node> func_arg
+// %type <typeID> func_ret
+// %type <symList> func_arg
 %type <typeID> type
 // %type <node> declarations
 %type <_list> list
@@ -76,8 +78,8 @@
 // %type <node> assn
 %type <_cntrl> cntrl
 //-%type <node> read
-//-%type <node> write
-//-%type <node> return
+// %type <node> write
+%type <_return> return
 %type <_exp> exp
 %type <_bexp> bexp
 %type <_bterm> bterm
@@ -87,40 +89,51 @@
 %type <_factor> factor
 
 %type <_m1> m1
+%type <_m2> m2
 
 %right IF THEN ELSE
 
 %%
 	/* semantic rules */
 
-program		: function main_function		{ currentScope->Disp();
-							  emit.Disp();
+program		: m3 function main_function		{ dbgout << "Syntax Ok \n";
 							  return 0;
 							}
 		;
 
-main_function	: PROGRAM blk				{ if ($2.nextlist != NULL) {
+main_function	: m4 PROGRAM blk			{ if ($3.retlist != NULL)
+								throw CCompilationException("'return' statement used (somewhere) in code block that does not belong to a function");
+							  if ($3.nextlist != NULL) {
 								CSymbol *label = newLabel("halt");
 								emit.label(label);
-								$2.nextlist->Backpatch(label);
+								$3.nextlist->Backpatch(label);
 							  }
 							  emit.halt();
 							}
 		;
 
-function	: func_ret func_arg blk			{ BUG_IF(true, "Non-implemented case"); }
+function	: m2 func_ret func_arg blk		{ CCodeBlock::SymDB q = function_prologue($1.prologue_label);
+							  function_epilogue(q, $4.nextlist, $4.retlist);
+							  emit.label($1.skip_label);
+							}
 		| /* eps */				{ }
 		;
 
 func_arg	: LPAREN ID COLON type COMMA ID COLON type RPAREN	{
-						    	  BUG_IF(true, "Non-implemented case");
+						    	  BUG_IF((currentFunc == NULL), "Expected an existing function");
+							  currentFunc->AddArgument(newSymbol($2, $4));
+							  currentFunc->AddArgument(newSymbol($6, $8));
+							  currentScope->Add(currentFunc);
 							}
 		;
 
-func_ret	: type FUNCTION				{ BUG_IF(true, "Non-implemented case"); }
+func_ret	: type FUNCTION				{ BUG_IF((currentFunc != NULL), "Expected to start all new function");
+							  currentFunc = new CFuncSymbol("@function", $1);
+							}
 		;
 
 blk		: m0 declarations BEGIN_ list END	{ $$.nextlist = $4.nextlist;
+							  $$.retlist = $4.retlist;
 							  blk_exit();
 							}
 		;
@@ -153,28 +166,38 @@ type		: INTEGER				{ $$ = CSymbol::INTEGER; }
 list		: list m1 stmt				{ if ($1.nextlist != NULL)
 								$1.nextlist->Backpatch($2.label);
 							  $$.nextlist = $3.nextlist;
+							  $$.retlist = ($1.retlist != NULL) ? $1.retlist->Merge($3.retlist) : $3.retlist;
 							}
 		| /* eps */				{ $$.nextlist = NULL; }
 		;
 
-stmt		: assn					{ $$.nextlist = NULL; }
-		| cntrl					{ $$.nextlist = $1.nextlist; }
-		| read					{ BUG_IF(true, "Non-implemented case"); }
-		| write					{ BUG_IF(true, "Non-implemented case"); }
-		| return				{ BUG_IF(true, "Non-implemented case"); }
-		| blk					{ BUG_IF(true, "Non-implemented case"); }
-		;
-
-write		: WRITE LPAREN exp RPAREN SEMICOLON	{ BUG_IF(true, "Non-implemented case");
+stmt		: assn					{ $$.nextlist = NULL;
+							  $$.retlist = NULL;
+							}
+		| cntrl					{ $$.nextlist = $1.nextlist;
+							  $$.retlist = $1.retlist;
+							}
+		| read					{ $$.nextlist = NULL;
+							  $$.retlist = NULL;
+							}
+		| write					{ $$.nextlist = NULL;
+							  $$.retlist = NULL;
+							}
+		| return				{ $$.nextlist = NULL;
+							  $$.retlist = $1.retlist;
+							}
+		| blk					{ $$.nextlist = $1.nextlist;
+							  $$.retlist = $1.retlist;
 							}
 		;
 
-return		: RETURN LPAREN exp RPAREN SEMICOLON	{ BUG_IF(true, "Non-implemented case");
-							}
+write		: WRITE LPAREN exp RPAREN SEMICOLON	{ emit.prnt($3.place); }
 		;
 
-read		: READ LPAREN ID RPAREN SEMICOLON	{ BUG_IF(true, "Non-implemented case");
-							}
+return		: RETURN LPAREN exp RPAREN SEMICOLON	{ $$ = return_exp($3.place); }
+		;
+
+read		: READ LPAREN ID RPAREN SEMICOLON	{ emit.read(currentScope->Get($3)); }
 		;
 
 assn		: ID ASSIGN exp SEMICOLON		{ emit.copy(currentScope->Get($1), $3.place); }
@@ -188,6 +211,7 @@ cntrl		: IF bexp THEN m1 stmt ELSE m1 stmt	{ BUG_IF(true, "Non-implemented case"
 								$5.nextlist = new CBPList(next);
 							  }
 							  $$.nextlist = $2.falselist->Merge($5.nextlist);
+							  $$.retlist = $5.retlist;
 							}
 
 		| FOR LPAREN stmt bexp SEMICOLON stmt RPAREN stmt	{
@@ -228,7 +252,7 @@ bpfac		: exp RELOP exp				{ $$ = bpfac_relOp($2, $1.place, $3.place); }
 							}
 		;
 
-exp		: CALL LPAREN exp COMMA exp RPAREN	{ BUG_IF(true, "Non-implemented case"); }
+exp		: CALL LPAREN exp COMMA exp RPAREN	{ $$.place = exp_call((CSymbol*[]){ $3.place, $5.place }); }
 		| exp ADDOP term			{ $$.place = newTemp(DestSymbolType($1.place, $3.place));
 							  emit.arith($2, $$.place, $1.place, $3.place);
 							}
@@ -253,6 +277,19 @@ m0		:					{ blk_enter(); }
 m1		:					{ $$.label = newLabel("m");
 							  emit.label($$.label);
 							}
+		;
+
+m2		:					{ $$.skip_label = newLabel("skip");
+							  $$.prologue_label = newLabel("prologue-splice");
+							  emit.ujump($$.skip_label);
+							  emit.label($$.prologue_label);
+							}
+		;
+
+m3		:					{ program_init(); }
+		;
+
+m4		:					{ main_init(); }
 		;
 
 %%

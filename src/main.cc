@@ -4,6 +4,7 @@
 #include <libgen.h>
 #include <fstream>
 #include "utils.h"
+#include "semantic_rules.h"
 
 static void parse_cmdline_args(int argc, char *argv[]);
 
@@ -14,6 +15,9 @@ int main(int argc, char *argv[])
 	parse_cmdline_args(argc, argv);
 	try {
 		yyparse();
+
+		currentScope->Disp();
+		emit.Disp();
 	}
 	catch (CCompilationException& ex) {
 		cerr << "Compile error [line " << yylineno << "]: " << ex << endl;

@@ -1,8 +1,10 @@
 #ifndef _CODE_H
 #define _CODE_H
 
+#include <cstdarg>
 #include <iostream>
 #include <list>
+#include <queue>
 
 #include "symbol.h"
 
@@ -76,6 +78,8 @@ private:
 	CodeDB m_codeDB;
 
 public:
+	typedef queue<CSymbol*> SymDB;
+
 	CCodeBlock();
 	~CCodeBlock();
 
@@ -84,6 +88,7 @@ public:
     inline iterator begin() { return m_codeDB.begin(); }
     inline iterator end() { return m_codeDB.end(); }
 
+	void Splice(CSymbol *marker, CCodeBlock& subBlock);
 	void Disp();
 
 	// instruction implementation
@@ -95,6 +100,12 @@ public:
 	void arith(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *src1);
 	void load(CSymbol *dest, CSymbol *addr0, CSymbol *addr1);
 	void stor(CSymbol *src, CSymbol *addr0, CSymbol *addr1);
+	void push(int argc, ...);
+	void pop(int argc, ...);
+	void push(SymDB *q);
+	void pop(SymDB *q);
+	void load_argument(CSymbol *dest, int index);
+	void store_retval(CSymbol *src);
 
 	// machine instructions
 	void copyi(CSymbol *dest, CSymbol *src);

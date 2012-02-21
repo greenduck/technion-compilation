@@ -1,6 +1,7 @@
 #include <string.h>
 #include "code.h"
 #include "utils.h"
+#include "semantic_rules.h"
 
 static const char *opcode_to_string[] = {
 	"COPYI",
@@ -82,6 +83,20 @@ CCodeBlock::CCodeBlock()
 
 CCodeBlock::~CCodeBlock()
 {
+}
+
+
+void CCodeBlock::Splice(CSymbol *marker, CCodeBlock& subBlock)
+{
+	for (iterator it = begin(); it != end(); ++it) {
+		if (it->args[SRC0] == marker) {
+			// marker symbol found ...
+			m_codeDB.splice(it, subBlock.m_codeDB);
+			return;
+		}
+	}
+
+	BUG_IF(true, "Could not identify splice marker");
 }
 
 
@@ -234,6 +249,94 @@ void CCodeBlock::stor(CSymbol *src, CSymbol *addr0, CSymbol *addr1)
 		storr(src, addr0, addr1);
 }
 
+void CCodeBlock::push(int argc, ...)
+{
+	va_list args;
+	CSymbol *sym;
+	SymDB q;
+
+	va_start(args, argc);
+	for (int i = 0; i < argc; ++i) {
+		sym = va_arg(args, CSymbol*);
+		q.push(sym);
+	}
+	va_end(args);
+
+	push(&q);
+}
+
+void CCodeBlock::pop(int argc, ...)
+{
+	va_list args;
+	CSymbol *sym;
+	SymDB q;
+
+	va_start(args, argc);
+	for (int i = 0; i < argc; ++i) {
+		sym = va_arg(args, CSymbol*);
+		q.push(sym);
+	}
+	va_end(args);
+
+	pop(&q);
+}
+
+void CCodeBlock::push(SymDB *q)
+{
+	CSymbol *sym;
+	CSymbol *offset;
+	CSymbol *sp = currentScope->Get("@SP");
+	int argc = q->size();
+
+	for (int i = 0; i < argc; ++i) {
+		sym = q->front();
+		q->pop();
+
+		if (sym != NULL) {
+			offset = newConst(i);
+			stor(sym, sp, offset);
+
+			// each time FP is pushed,
+			// FP catches up-to-date value of SP
+			if (sym->Label() == "@FP") {
+				arith("+", sym, sp, newConst(i + 1));
+			}
+		}
+	}
+
+	arith("+", sp, sp, newConst(argc));
+}
+
+void CCodeBlock::pop(SymDB *q)
+{
+	CSymbol *sym;
+	CSymbol *offset;
+	CSymbol *sp = currentScope->Get("@SP");
+	int argc = q->size();
+
+	arith("-", sp, sp, newConst(argc));
+
+	for (int i = 0; i < argc; ++i) {
+		sym = q->front();
+		q->pop();
+
+		if (sym != NULL) {
+			offset = newConst(i);
+			load(sym, sp, offset);
+		}
+	}
+}
+
+void CCodeBlock::load_argument(CSymbol *dest, int index)
+{
+	emit.load(dest, currentScope->Get("@FP"), newConst(index + 1));
+}
+
+void CCodeBlock::store_retval(CSymbol *src)
+{
+	emit.stor(src, currentScope->Get("@FP"), newConst(0));
+}
+
 
 // TODO:
 // Assert that each parameter has right type
@@ -294,12 +397,12 @@ void CCodeBlock::divdi(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 
 void CCodeBlock::loadi(CSymbol *dest, CSymbol *addr0, CSymbol *addr1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(LOADI, addr0, addr1, dest));
 }
 
 void CCodeBlock::stori(CSymbol *src, CSymbol *addr0, CSymbol *addr1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(STORI, addr0, addr1, src));
 }
 
 
@@ -360,12 +463,12 @@ void CCodeBlock::divdr(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 
 void CCodeBlock::loadr(CSymbol *dest, CSymbol *addr0, CSymbol *addr1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(LOADR, addr0, addr1, dest));
 }
 
 void CCodeBlock::storr(CSymbol *src, CSymbol *addr0, CSymbol *addr1)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(STORR, addr0, addr1, src));
 }
 
 
@@ -393,7 +496,7 @@ void CCodeBlock::jlink(CSymbol *src)
 
 void CCodeBlock::retrn(void)
 {
-	BUG_IF(true, "Non-implemented instruction");
+	m_codeDB.push_back(Instruction(RETRN, NULL, NULL, NULL));
 }
 
 void CCodeBlock::breqz(CSymbol *src0, CSymbol *src1)

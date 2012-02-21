@@ -7,8 +7,11 @@
 
 #include "utils.h"
 #include "linked_list.h"
+#include "storage.h"
 
 using namespace std;
+
+class CSymbol;
 
 // data structure for handling nested scopes
 template <typename TSym>
@@ -27,7 +30,7 @@ public:
 		}
 	}
 
-	~CScopeInfo()
+	virtual ~CScopeInfo()
 	{
 	}
 
@@ -100,6 +103,17 @@ private:
 
 
 
+class SymbolScope : public CScopeInfo<CSymbol>
+{
+public:
+	SymbolScope(SymbolScope *parent);
+	virtual ~SymbolScope();
+
+	CRegAlloc *regUsage[2];
+};
+
+
+
 class CSymbol : public LinkedListNode
 {
 public:
@@ -111,7 +125,7 @@ public:
 
 	CSymbol(const char *label, TypeID typeID);
 	CSymbol(const char *label, const char *value, TypeID typeID);
-	~CSymbol();
+	virtual ~CSymbol();
 
 	string Label();
 	TypeID Type();
@@ -155,11 +169,31 @@ CSymbol *newTemp(CSymbol::TypeID typeID);
 CSymbol *newConst(const char *value);
 CSymbol *newConst(int value);
 CSymbol *newConst(float value);
+CSymbol *regSymbol(const char *label, CSymbol::TypeID typeID, int regID);
 CSymbol *newLabel(const char *prefix);
 
+/* Function Symbol Class
+ * Note: 
+ * This implementation is patchy. CFuncSymbol and CSymbol should've had common ancestor. 
+ */
+class CFuncSymbol : public CSymbol
+{
+private:
+	typedef list<CSymbol*> SymList;
 
+	SymList m_arguments;
 
-typedef CScopeInfo<CSymbol> SymbolScope;
+public:
+	CFuncSymbol(const char *label, TypeID retType);
+	virtual ~CFuncSymbol();
+
+	void AddArgument(CSymbol *arg);
+
+    // interface to list::iterator
+    typedef SymList::iterator iterator;
+    inline iterator begin() { return m_arguments.begin(); }
+    inline iterator end() { return m_arguments.end(); }
+};
 
 #endif	// _SYMBOL_H
 
