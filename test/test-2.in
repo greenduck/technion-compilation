@@ -1,5 +1,5 @@
-/* Sample 5
- * a^b calculation
+/*
+ * (recursive) a^b calculation
  */
 
 integer function(a :integer, b :integer)
@@ -12,6 +12,7 @@ begin
 	end
 	return(1);
 end
+
 
 program
 var	m, n :integer;

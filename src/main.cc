@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
 		yyparse();
 
 		// currentScope->Disp();
+		// emit.Disp(dbgout);
 
 		emit.CalcLabelAddress(1);
 		emit.Disp(machout);

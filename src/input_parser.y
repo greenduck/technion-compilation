@@ -27,6 +27,7 @@
 	SReturn		_return;
 	SM1		_m1;
 	SM2		_m2;
+	SM5		_m5;
 }
 
 %token PROGRAM
@@ -62,34 +63,35 @@
 %token <text> MULOP
 %token <text> RELOP
 
-%start program
-// %type <node> function
-// %type <node> main_function
-%type <_blk> blk
-// %type <typeID> func_ret
-// %type <symList> func_arg
-%type <typeID> type
-// %type <node> declarations
-%type <_list> list
-// %type <node> declarlist
-// %type <node> dcl
-%type <idQueue> idents
-%type <_stmt> stmt
-// %type <node> assn
-%type <_cntrl> cntrl
-//-%type <node> read
-// %type <node> write
-%type <_return> return
-%type <_exp> exp
-%type <_bexp> bexp
-%type <_bterm> bterm
-%type <_bfac> bfac
-%type <_bpfac> bpfac
-%type <_term> term
-%type <_factor> factor
+%start		program
+// %type <node>	function
+// %type <node>	main_function
+%type <_blk>	blk
+// %type <typeID>	func_ret
+// %type <symList>	func_arg
+%type <typeID>	type
+// %type <node>	declarations
+%type <_list>	list
+// %type <node>	declarlist
+// %type <node>	dcl
+%type <idQueue>	idents
+%type <_stmt>	stmt
+// %type <node>	assn
+%type <_cntrl>	cntrl
+// %type <node>	read
+// %type <node>	write
+%type <_return>	return
+%type <_exp>	exp
+%type <_bexp>	bexp
+%type <_bterm>	bterm
+%type <_bfac>	bfac
+%type <_bpfac>	bpfac
+%type <_term>	term
+%type <_factor>	factor
 
-%type <_m1> m1
-%type <_m2> m2
+%type <_m1>	m1
+%type <_m2>	m2
+%type <_m5>	m5
 
 %right IF THEN ELSE
 
@@ -203,21 +205,41 @@ read		: READ LPAREN ID RPAREN SEMICOLON	{ emit.read(currentScope->Get($3)); }
 assn		: ID ASSIGN exp SEMICOLON		{ emit.copy(currentScope->Get($1), $3.place); }
 		;
 
-cntrl		: IF bexp THEN m1 stmt ELSE m1 stmt	{ BUG_IF(true, "Non-implemented case"); }
+cntrl		: IF bexp THEN m1 stmt ELSE m5 m1 stmt	{ $2.truelist->Backpatch($4.label);
+							  $2.falselist->Backpatch($8.label);
+							  enforce_valid_nextlist($9.nextlist);
+							  $$.nextlist = $7.dest->Merge($5.nextlist)->Merge($9.nextlist);
+							  $$.retlist = ($5.retlist != NULL) ? $5.retlist->Merge($9.retlist) : $9.retlist;
+							}
+
 		| IF bexp THEN m1 stmt			{ $2.truelist->Backpatch($4.label);
-							  if ($5.nextlist == NULL) {
-								CSymbol *next = newLabel("_____");
-								emit.ujump(next);
-								$5.nextlist = new CBPList(next);
-							  }
+							  enforce_valid_nextlist($5.nextlist);
 							  $$.nextlist = $2.falselist->Merge($5.nextlist);
 							  $$.retlist = $5.retlist;
 							}
 
-		| FOR LPAREN stmt bexp SEMICOLON stmt RPAREN stmt	{
-				    			  BUG_IF(true, "Non-implemented case");
+		| FOR LPAREN stmt m1 bexp SEMICOLON m1 stmt m5 RPAREN m1 stmt	{
+							  if ($3.nextlist != NULL)
+      								$3.nextlist->Backpatch($4.label);
+
+							  $5.truelist->Backpatch($11.label);
+							  enforce_valid_nextlist($12.nextlist);
+							  $12.nextlist->Backpatch($7.label);
+
+							  $9.dest->Merge($8.nextlist)->Backpatch($4.label);
+
+				    			  $$.nextlist = $5.falselist;
+							  $$.retlist = ($3.retlist != NULL) ? $3.retlist->Merge($8.retlist)->Merge($12.retlist) :
+								       ($8.retlist != NULL) ? $8.retlist->Merge($12.retlist) :
+								       $12.retlist;
 							}
-		| WHILE bexp DO stmt			{ BUG_IF(true, "Non-implemented case"); }
+
+		| WHILE m1 bexp DO m1 stmt		{ $3.truelist->Backpatch($5.label);
+							  $$.nextlist = $3.falselist;
+							  $$.retlist = $6.retlist;
+							  enforce_valid_nextlist($6.nextlist);
+							  $6.nextlist->Backpatch($2.label);
+							}
 		;
 
 bexp		: bexp OR m1 bterm			{ $$.truelist = $1.truelist->Merge($4.truelist);
@@ -290,6 +312,12 @@ m3		:					{ program_init(); }
 		;
 
 m4		:					{ main_init(); }
+		;
+
+m5		:					{ CSymbol *dest_label = newLabel("_____");
+							  emit.ujump(dest_label);
+							  $$.dest = new CBPList(dest_label);
+							}
 		;
 
 %%

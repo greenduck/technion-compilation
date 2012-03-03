@@ -81,7 +81,19 @@ SBpfac bpfac_relOp(const char *op, CSymbol *p1, CSymbol *p2)
 	emit.breqz(cmp, falselabel);
 	emit.ujump(truelabel);
 
+	regPool[CSymbol::INTEGER]->Release(cmp->Register());
+
 	return (SBpfac){ new CBPList(truelabel), new CBPList(falselabel) };
+}
+
+
+void enforce_valid_nextlist(CBPList *&nextlist)
+{
+	if (nextlist == NULL) {
+		CSymbol *next = newLabel("_____");
+		emit.ujump(next);
+		nextlist = new CBPList(next);
+	}
 }
 
 
@@ -122,6 +134,12 @@ CSymbol *exp_call(CSymbol *p[2])
 		p[i] = CastIfRequired(p[i], (*arg)->Type());
 	}
 
+	// touch LR
+	// In function prologue, we push all the registers that were touched.
+	// If we perform function call, 'this' is not a leaf function, so LR should be stored.
+	// In leaf function prologue LR is not stored.
+	currentScope->regUsage[CSymbol::INTEGER]->Mirror( currentScope->Get("@LR")->Register() );
+
 	emit.push(4, fp, NULL, p[0], p[1]);
 	emit.jlink(fun);
 	emit.pop(4, fp, ret, NULL, NULL);
@@ -158,10 +176,9 @@ CCodeBlock::SymDB function_prologue(CSymbol *prologue_label)
 	CSymbol *sym;
 
 	// push ...
-	// 1. Link Register [TODO: if this is a 'leaf function' - no need to save / restore LR]
+	// 1. Link Register (if this is not a leaf function) - already in 'regUsage'
 	// 2. INTEGER registers
 	// 3. REAL registers 
-	q.push(currentScope->Get("@LR"));
 	for (int regID = currentScope->regUsage[CSymbol::INTEGER]->FirstAllocated(); regID != CRegAlloc::NOREG; regID = currentScope->regUsage[CSymbol::INTEGER]->NextAllocated(regID)) {
 		sym = regSymbol("", CSymbol::INTEGER, regID);
 		q.push(sym);

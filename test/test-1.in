@@ -1,0 +1,45 @@
+/* Basic code constructs test */ 
+
+real function(m :integer, n :real)
+var	ans :real;
+begin
+	for (ans = 0; m > 0; m = m - 1;)
+		ans = ans + n;
+	return(ans);
+end
+
+
+program
+var	a :integer;
+	x, y :real;
+
+begin
+	read(a);
+	x = 8;
+	if (a > 3) && (x == 8.0) then
+		a = a * 2;
+	write(a);
+	
+	
+	read(a);
+	if a > 3 then
+		write(a);
+	else
+		write(3);
+	write(a * 2);
+	
+	
+	read(a);
+	y = 0;
+	while a > 0 do
+	begin
+		y = y + x;
+		a = a - 1;
+	end
+	write(y);
+
+
+	read(a);
+	write(call(a, x));
+end
+

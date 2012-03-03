@@ -423,7 +423,7 @@ void CCodeBlock::prntr(CSymbol *src)
 
 void CCodeBlock::readr(CSymbol *dest)
 {
-	m_codeDB.push_back(Instruction(PRNTR, NULL, NULL, dest));
+	m_codeDB.push_back(Instruction(READR, NULL, NULL, dest));
 }
 
 void CCodeBlock::sequr(CSymbol *dest, CSymbol *src0, CSymbol *src1)

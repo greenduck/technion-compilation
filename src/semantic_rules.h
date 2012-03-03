@@ -79,6 +79,10 @@ struct SM2 {
 	CSymbol *prologue_label;
 };
 
+struct SM5 {
+	CBPList *dest;
+};
+
 extern SymbolScope *currentScope;
 extern CCodeBlock emit;
 extern CRegAlloc *regPool[2];
@@ -90,6 +94,9 @@ void blk_enter();
 void blk_exit();
 void dcl_applySymbols(IDQueue *symbols, CSymbol::TypeID typeID);
 SBpfac bpfac_relOp(const char *op, CSymbol *p1, CSymbol *p2);
+
+void enforce_valid_nextlist(CBPList *&nextlist);
+
 CSymbol *exp_call(CSymbol *p[2]);
 SReturn return_exp(CSymbol *p);
 CCodeBlock::SymDB function_prologue(CSymbol *prologue_label);
