@@ -73,3 +73,5 @@ ostream machout(&outfileFb);
 filebuf dbgfileFb;
 ostream dbgout(&dbgfileFb);
 
+bool constPropagation;
+

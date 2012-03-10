@@ -1,3 +1,8 @@
+/* 
+ * Basic code definitions: 
+ * Instruction - a single instruction encoding 
+ * CCodeBlock - a single block of instructions, implementing each instruction emitting 
+ */
 #ifndef _CODE_H
 #define _CODE_H
 
@@ -105,7 +110,7 @@ public:
 	void copy(CSymbol *dest, CSymbol *src);
 	void prnt(CSymbol *src);
 	void read(CSymbol *dest);
-	void comp(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *src1);
+	bool comp(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *src1);
 	void arith(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *src1);
 	void load(CSymbol *dest, CSymbol *addr0, CSymbol *addr1);
 	void stor(CSymbol *src, CSymbol *addr0, CSymbol *addr1);

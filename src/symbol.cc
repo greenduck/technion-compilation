@@ -60,12 +60,29 @@ CSymbol::TypeID CSymbol::Type()
 	return Last()->m_typeID;
 }
 
-void CSymbol::SetValue(const char *value)
+void CSymbol::SetValue(const string& value)
 {
 	BUG_IF((Last()->m_valueStatus == CONST), "Attempt to change constant value");
 
-	Last()->m_value = string(value);
+	int flag = ((m_typeID == INTEGER || m_typeID == LABEL) << 1) | (DiscoverType(value.c_str()) == INTEGER);
+	switch (flag)
+	{
+	case 3:	Last()->m_value = value;
+			break;
+	case 2:	Last()->m_value = value.substr(0, value.find_first_of("."));
+			break;
+	case 1:	Last()->m_value = value + ".0";
+			break;
+	case 0:	Last()->m_value = value;
+			break;
+	}
+
 	Last()->m_valueStatus = VALID;
+}
+
+void CSymbol::SetValue(const char *value)
+{
+	SetValue(string(value));
 }
 
 string CSymbol::GetValue()
@@ -175,6 +192,11 @@ CSymbol *newTemp(CSymbol::TypeID typeID)
 CSymbol *newConst(const char *value)
 {
 	return new CSymbol("", value, CSymbol::DiscoverType(value));
+}
+
+CSymbol *newConst(const string& value)
+{
+	return newConst(value.c_str());
 }
 
 CSymbol *newConst(int value)

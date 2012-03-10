@@ -1,3 +1,7 @@
+/*
+ * Implementation of (more than trivial) semantic rules 
+ * This file accompanies input_parser.y 
+ */
 #ifndef _SEMANTIC_RULES_H
 #define _SEMANTIC_RULES_H
 
@@ -87,6 +91,7 @@ extern SymbolScope *currentScope;
 extern CCodeBlock emit;
 extern CRegAlloc *regPool[2];
 extern CFuncSymbol *currentFunc;
+extern CCodeBlock::SymDB constPropagationPending;
 
 void program_init();
 void main_init();
@@ -94,8 +99,11 @@ void blk_enter();
 void blk_exit();
 void dcl_applySymbols(IDQueue *symbols, CSymbol::TypeID typeID);
 SBpfac bpfac_relOp(const char *op, CSymbol *p1, CSymbol *p2);
+CSymbol *arithOp(const char *op, CSymbol *src0, CSymbol *src1);
+void assnOp(CSymbol *dest, CSymbol *src);
 
 void enforce_valid_nextlist(CBPList *&nextlist);
+void StopConstPropagation();
 
 CSymbol *exp_call(CSymbol *p[2]);
 SReturn return_exp(CSymbol *p);

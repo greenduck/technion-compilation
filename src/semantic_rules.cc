@@ -1,14 +1,17 @@
 #include <stdlib.h>
 #include "semantic_rules.h"
+#include "calc.h"
 
 #define NO_SYMBOL_SCOPING
 SymbolScope *currentScope = new SymbolScope(NULL);
+// 'emit' object is a sintactic sugar referring to code emitting learned in compilation course
 CCodeBlock emit;
 CRegAlloc *regPool[2] = {
 	/* INTEGER */ new CRegAlloc(NREGS, (const int[]){0, 1, 2, CRegAlloc::NOREG}),
 	/* REAL    */ new CRegAlloc(NREGS)
 };
 CFuncSymbol *currentFunc = NULL;
+CCodeBlock::SymDB constPropagationPending;
 
 void program_init()
 {
@@ -77,13 +80,71 @@ SBpfac bpfac_relOp(const char *op, CSymbol *p1, CSymbol *p2)
 	CSymbol *truelabel = newLabel("_____");
 	CSymbol *falselabel = newLabel("_____");
 
-	emit.comp(op, cmp, p1, p2);
-	emit.breqz(cmp, falselabel);
-	emit.ujump(truelabel);
+	bool inverse_logic = emit.comp(op, cmp, p1, p2);
+	if ( !inverse_logic ) {
+		emit.breqz(cmp, falselabel);
+		emit.ujump(truelabel);
 
-	regPool[CSymbol::INTEGER]->Release(cmp->Register());
+		regPool[CSymbol::INTEGER]->Release(cmp->Register());
 
-	return (SBpfac){ new CBPList(truelabel), new CBPList(falselabel) };
+		return (SBpfac){ new CBPList(truelabel), new CBPList(falselabel) };
+	}
+	else {
+		emit.bneqz(cmp, truelabel);
+		emit.ujump(falselabel);
+
+		regPool[CSymbol::INTEGER]->Release(cmp->Register());
+
+		return (SBpfac){ new CBPList(falselabel), new CBPList(truelabel) };
+	}
+}
+
+CSymbol *arithOp(const char *op, CSymbol *src0, CSymbol *src1)
+{
+	CSymbol *dest;
+	bool performConstProp = constPropagation;
+
+	if ( performConstProp ) {
+		if (src0->ValueIsSet() && src1->ValueIsSet()) {
+			// constant propagation
+			string lvalue = calc(src0->GetValue() + " " + op + " " + src1->GetValue());
+			dest = newConst(lvalue);
+		}
+		else {
+			performConstProp = false;
+		}
+	}
+
+	if ( !performConstProp ) {
+		// code generation
+		dest = newTemp(DestSymbolType(src0, src1));
+		emit.arith(op, dest, src0, src1);
+	}
+
+	return dest;
+}
+
+void assnOp(CSymbol *dest, CSymbol *src)
+{
+	emit.copy(dest, src);
+
+	if (constPropagation && src->ValueIsSet()) {
+		dest->SetValue( src->GetValue() );
+		constPropagationPending.push(dest);
+	}
+}
+
+void StopConstPropagation()
+{
+	CSymbol *sym;
+
+	dbgout << __FUNCTION__ << ": \n";
+	while ( !constPropagationPending.empty() ) {
+		sym = constPropagationPending.front();
+		constPropagationPending.pop();
+		if ( sym->ValueIsSet() ) {	dbgout << sym->Label() << " (" << sym->GetValue() << ") \n"; }
+		sym->DiscardValue();
+	}
 }
 
 

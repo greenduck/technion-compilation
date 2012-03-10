@@ -1,3 +1,6 @@
+/* 
+ * General purpose utilities
+ */
 #ifndef _UTILS_H
 #define _UTILS_H
 
@@ -76,6 +79,8 @@ extern ostream machout;
 
 extern filebuf dbgfileFb;
 extern ostream dbgout;
+
+extern bool constPropagation;
 
 #endif	// _UTILS_H
 

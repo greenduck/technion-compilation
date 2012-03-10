@@ -1,4 +1,8 @@
-
+/* Unit testing framework
+ * providing alternative main() 
+ * Build with: 
+ * make unittest=1 
+ */
 #include "utils.h"
 #include "symbol.h"
 #include "code.h"

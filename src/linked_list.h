@@ -1,3 +1,8 @@
+/* 
+ * General purpose linked list implementation 
+ * A class that needs linked list functionality, 
+ * should inherit this class 
+ */
 #ifndef _LINKED_LIST_H
 #define _LINKED_LIST_H
 

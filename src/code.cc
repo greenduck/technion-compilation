@@ -122,11 +122,17 @@ void CCodeBlock::read(CSymbol *dest)
 		readr(dest);
 }
 
-void CCodeBlock::comp(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *src1)
+/* Generic comparison instruction
+ * As underlying architecture might implement only a subset of comparison operators 
+ * (==, >, >= etc.), we return boolean flag that signals comparison logic inversion.
+ */
+bool CCodeBlock::comp(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *src1)
 {
 	CSymbol *a;
 	CSymbol *b;
 	int flag = ((src0->Type() == CSymbol::INTEGER) << 1) | (src1->Type() == CSymbol::INTEGER);
+	bool inverse_logic = false;
+
 	switch (flag)
 	{
 	case 3:	a = src0;
@@ -150,9 +156,9 @@ void CCodeBlock::comp(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *src
 	case 3:	if (!strcmp("==", op))			sequi(dest, a, b);
 			else if (!strcmp("<>", op))		sneqi(dest, a, b);
 			else if (!strcmp("<",  op))		sleti(dest, a, b);
-			else if (!strcmp("<=", op))		sgrti(dest, b, a);
+			else if (!strcmp("<=", op))		sgrti(dest, a, b), inverse_logic = true;
 			else if (!strcmp(">",  op))		sgrti(dest, a, b);
-			else if (!strcmp(">=", op))		sleti(dest, b, a);
+			else if (!strcmp(">=", op))		sleti(dest, a, b), inverse_logic = true;
 			break;
 
 	case 2:
@@ -160,11 +166,13 @@ void CCodeBlock::comp(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *src
 	case 0: if (!strcmp("==", op))			sequr(dest, a, b);
 			else if (!strcmp("<>", op))		sneqr(dest, a, b);
 			else if (!strcmp("<",  op))		sletr(dest, a, b);
-			else if (!strcmp("<=", op))		sgrtr(dest, b, a);
+			else if (!strcmp("<=", op))		sgrtr(dest, a, b), inverse_logic = true;
 			else if (!strcmp(">",  op))		sgrtr(dest, a, b);
-			else if (!strcmp(">=", op))		sletr(dest, b, a);
+			else if (!strcmp(">=", op))		sletr(dest, a, b), inverse_logic = true;
 			break;
 	}
+
+	return inverse_logic;
 }
 
 void CCodeBlock::arith(const char *op, CSymbol *dest, CSymbol *src0, CSymbol *src1)
@@ -397,7 +405,7 @@ void CCodeBlock::multi(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 
 void CCodeBlock::divdi(CSymbol *dest, CSymbol *src0, CSymbol *src1)
 {
-	m_codeDB.push_back(Instruction(MULTI, src0, src1, dest));
+	m_codeDB.push_back(Instruction(DIVDI, src0, src1, dest));
 }
 
 void CCodeBlock::loadi(CSymbol *dest, CSymbol *addr0, CSymbol *addr1)
@@ -491,39 +499,67 @@ void CCodeBlock::crtoi(CSymbol *dest, CSymbol *src)
 void CCodeBlock::ujump(CSymbol *src)
 {
 	m_codeDB.push_back(Instruction(UJUMP, src, NULL, NULL));
+
+	if ( constPropagation ) {
+		StopConstPropagation();
+	}
 }
 
 void CCodeBlock::jlink(CSymbol *src)
 {
 	m_codeDB.push_back(Instruction(JLINK, src, NULL, NULL));
+
+	if ( constPropagation ) {
+		StopConstPropagation();
+	}
 }
 
 
 void CCodeBlock::retrn(void)
 {
 	m_codeDB.push_back(Instruction(RETRN, NULL, NULL, NULL));
+
+	if ( constPropagation ) {
+		StopConstPropagation();
+	}
 }
 
 void CCodeBlock::breqz(CSymbol *src0, CSymbol *src1)
 {
 	m_codeDB.push_back(Instruction(BREQZ, src0, src1, NULL));
+
+	if ( constPropagation ) {
+		StopConstPropagation();
+	}
 }
 
 void CCodeBlock::bneqz(CSymbol *src0, CSymbol *src1)
 {
 	m_codeDB.push_back(Instruction(BNEQZ, src0, src1, NULL));
+
+	if ( constPropagation ) {
+		StopConstPropagation();
+	}
 }
 
 
 void CCodeBlock::halt(void)
 {
 	m_codeDB.push_back(Instruction(HALT, NULL, NULL, NULL));
+
+	if ( constPropagation ) {
+		StopConstPropagation();
+	}
 }
 
 
 void CCodeBlock::label(CSymbol *src)
 {
 	m_codeDB.push_back(Instruction(LABEL, src, NULL, NULL));
+
+	if ( constPropagation ) {
+		StopConstPropagation();
+	}
 }
 
 

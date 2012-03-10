@@ -1,3 +1,8 @@
+/* 
+ * Symbol and symbol scope management. 
+ * Note: 
+ * As scoping, eventually, was not required, it was not fully tested. 
+ */ 
 #ifndef _SYMBOL_H
 #define _SYMBOL_H
 
@@ -130,6 +135,7 @@ public:
 	string Label();
 	TypeID Type();
 
+	void SetValue(const string& value);
 	void SetValue(const char *value);
 	string GetValue();
 	bool ValueIsSet();
@@ -167,6 +173,7 @@ private:
 CSymbol *newSymbol(const char *label, CSymbol::TypeID typeID);
 CSymbol *newTemp(CSymbol::TypeID typeID);
 CSymbol *newConst(const char *value);
+CSymbol *newConst(const string& value);
 CSymbol *newConst(int value);
 CSymbol *newConst(float value);
 CSymbol *regSymbol(const char *label, CSymbol::TypeID typeID, int regID);

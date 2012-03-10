@@ -1,3 +1,6 @@
+/*
+ * Backpatch-able list of symbols
+ */
 #ifndef _BACKPATCH_H
 #define _BACKPATCH_H
 

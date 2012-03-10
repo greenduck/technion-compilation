@@ -1,3 +1,9 @@
+/*
+ * Basic register allocation 
+ * Note: 
+ * Garbage Collection (between registers) as required in real compiler 
+ * may be implemented on top of this allocator 
+ */
 #ifndef _STORAGE_H
 #define _STORAGE_H
 

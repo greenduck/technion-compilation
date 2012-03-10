@@ -7,6 +7,9 @@
 #include "semantic_rules.h"
 #include "symbol.h"
 
+// a patch that prevents emitting excessive marker labels
+static bool stmt_has_nextlist = false;
+
 %}
 
 %union {
@@ -92,6 +95,7 @@
 %type <_m1>	m1
 %type <_m2>	m2
 %type <_m5>	m5
+%type <_m1>	m6
 
 %right IF THEN ELSE
 
@@ -165,7 +169,7 @@ type		: INTEGER				{ $$ = CSymbol::INTEGER; }
 		| REAL					{ $$ = CSymbol::REAL; }
 		;
 
-list		: list m1 stmt				{ if ($1.nextlist != NULL)
+list		: list m6 stmt				{ if ($1.nextlist != NULL)
 								$1.nextlist->Backpatch($2.label);
 							  $$.nextlist = $3.nextlist;
 							  $$.retlist = ($1.retlist != NULL) ? $1.retlist->Merge($3.retlist) : $3.retlist;
@@ -175,21 +179,27 @@ list		: list m1 stmt				{ if ($1.nextlist != NULL)
 
 stmt		: assn					{ $$.nextlist = NULL;
 							  $$.retlist = NULL;
+							  stmt_has_nextlist = ($$.nextlist != NULL);
 							}
 		| cntrl					{ $$.nextlist = $1.nextlist;
 							  $$.retlist = $1.retlist;
+							  stmt_has_nextlist = ($$.nextlist != NULL);
 							}
 		| read					{ $$.nextlist = NULL;
 							  $$.retlist = NULL;
+							  stmt_has_nextlist = ($$.nextlist != NULL);
 							}
 		| write					{ $$.nextlist = NULL;
 							  $$.retlist = NULL;
+							  stmt_has_nextlist = ($$.nextlist != NULL);
 							}
 		| return				{ $$.nextlist = NULL;
 							  $$.retlist = $1.retlist;
+							  stmt_has_nextlist = ($$.nextlist != NULL);
 							}
 		| blk					{ $$.nextlist = $1.nextlist;
 							  $$.retlist = $1.retlist;
+							  stmt_has_nextlist = ($$.nextlist != NULL);
 							}
 		;
 
@@ -202,7 +212,7 @@ return		: RETURN LPAREN exp RPAREN SEMICOLON	{ $$ = return_exp($3.place); }
 read		: READ LPAREN ID RPAREN SEMICOLON	{ emit.read(currentScope->Get($3)); }
 		;
 
-assn		: ID ASSIGN exp SEMICOLON		{ emit.copy(currentScope->Get($1), $3.place); }
+assn		: ID ASSIGN exp SEMICOLON		{ assnOp(currentScope->Get($1), $3.place); }
 		;
 
 cntrl		: IF bexp THEN m1 stmt ELSE m5 m1 stmt	{ $2.truelist->Backpatch($4.label);
@@ -275,15 +285,11 @@ bpfac		: exp RELOP exp				{ $$ = bpfac_relOp($2, $1.place, $3.place); }
 		;
 
 exp		: CALL LPAREN exp COMMA exp RPAREN	{ $$.place = exp_call((CSymbol*[]){ $3.place, $5.place }); }
-		| exp ADDOP term			{ $$.place = newTemp(DestSymbolType($1.place, $3.place));
-							  emit.arith($2, $$.place, $1.place, $3.place);
-							}
+		| exp ADDOP term			{ $$.place = arithOp($2, $1.place, $3.place); }
 		| term					{ $$.place = $1.place; }
 		;
 
-term		: term MULOP factor			{ $$.place = newTemp(DestSymbolType($1.place, $3.place));
-							  emit.arith($2, $$.place, $1.place, $3.place);
-							}
+term		: term MULOP factor			{ $$.place = arithOp($2, $1.place, $3.place); }
 		| factor				{ $$.place = $1.place; }
 		;
 
@@ -317,6 +323,17 @@ m4		:					{ main_init(); }
 m5		:					{ CSymbol *dest_label = newLabel("_____");
 							  emit.ujump(dest_label);
 							  $$.dest = new CBPList(dest_label);
+							}
+		;
+
+m6		:					{ if ( stmt_has_nextlist ) {
+								stmt_has_nextlist = false;
+								$$.label = newLabel("m");
+								emit.label($$.label);
+							  }
+							  else {
+								$$.label = NULL;
+							  }
 							}
 		;
 

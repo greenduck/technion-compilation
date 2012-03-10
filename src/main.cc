@@ -1,3 +1,6 @@
+/*
+ * main() of the whole compiler
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,10 +48,11 @@ static void print_usage(const char *name)
 static void parse_cmdline_args(int argc, char *argv[])
 {
 	int i;
-	bool const_opt = false;
 	char *infile = NULL;
 	char *outfile = NULL;
 	char *dbgfile = NULL;
+
+	constPropagation = false;
 
 	for (i = 1; i < argc; ++i) {
 		if (!strcmp("-help", argv[i])) {
@@ -63,7 +67,7 @@ static void parse_cmdline_args(int argc, char *argv[])
 		}
 
 		if (!strcmp("-const", argv[i])) {
-			const_opt = true;
+			constPropagation = true;
 			continue;
 		}
 
