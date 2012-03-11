@@ -17,6 +17,9 @@ OUTFILE = $(BINDIR)/rcc
 CCX = @g++
 CFLAGS = -Wall -I$(SRCDIR) -I$(OBJDIR) -g
 LFLAGS = -Wall -rdynamic
+ifdef static
+	LFLAGS += -static
+endif
 COMPILE = $(CCX) $(CFLAGS)
 LINK = $(CCX) $(LFLAGS)
 RM = @rm -rf

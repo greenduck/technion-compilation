@@ -92,9 +92,25 @@ static void parse_cmdline_args(int argc, char *argv[])
 		}
 	}
 
+	{
+		// comply with naming convention
+		if (outfile == NULL && infile != NULL) {
+			outfile = (char *)malloc(strlen(infile) + 5);	/* (known) memory leak */
+			sprintf(outfile, "%s.rsk", infile);
+		}
+
+		if (dbgfile == NULL) {
+			dbgfile = (char *)"/dev/null";
+		}
+	}
+
 	// redirect output: stdout -> outfile
 	if (outfile != NULL) {
 		outfileFb.open(outfile, ios_base::out | ios_base::trunc);
+		if (!outfileFb.is_open()) {
+			fprintf(stderr, "Could not open output file \n");
+			exit(1);
+		}
 	}
 	else {
 		machout.rdbuf(cout.rdbuf());
