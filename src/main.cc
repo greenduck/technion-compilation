@@ -102,6 +102,9 @@ static void parse_cmdline_args(int argc, char *argv[])
 		if (dbgfile == NULL) {
 			dbgfile = (char *)"/dev/null";
 		}
+		else {
+			fprintf(stderr, "output debug data to %s \n", dbgfile);
+		}
 	}
 
 	// redirect output: stdout -> outfile
@@ -111,9 +114,11 @@ static void parse_cmdline_args(int argc, char *argv[])
 			fprintf(stderr, "Could not open output file \n");
 			exit(1);
 		}
+		outputPath = dirname(outfile);
 	}
 	else {
 		machout.rdbuf(cout.rdbuf());
+		outputPath = (char *)"/tmp";
 	}
 
 	if (dbgfile != NULL) {

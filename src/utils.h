@@ -81,6 +81,7 @@ extern filebuf dbgfileFb;
 extern ostream dbgout;
 
 extern bool constPropagation;
+extern char *outputPath;
 
 #endif	// _UTILS_H
 

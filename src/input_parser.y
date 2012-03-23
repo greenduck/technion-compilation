@@ -43,8 +43,8 @@ static bool stmt_has_nextlist = false;
 %token END
 %token VAR
 %token SEMICOLON
-%token INTEGER
-%token REAL
+%token INTEGER_
+%token REAL_
 %token WRITE
 %token READ
 %token RETURN
@@ -165,8 +165,8 @@ idents		: ID					{ $$ = new IDQueue();
 							}
 		;
 
-type		: INTEGER				{ $$ = CSymbol::INTEGER; }
-		| REAL					{ $$ = CSymbol::REAL; }
+type		: INTEGER_				{ $$ = CSymbol::INTEGER; }
+		| REAL_					{ $$ = CSymbol::REAL; }
 		;
 
 list		: list m6 stmt				{ if ($1.nextlist != NULL)
@@ -174,7 +174,9 @@ list		: list m6 stmt				{ if ($1.nextlist != NULL)
 							  $$.nextlist = $3.nextlist;
 							  $$.retlist = ($1.retlist != NULL) ? $1.retlist->Merge($3.retlist) : $3.retlist;
 							}
-		| /* eps */				{ $$.nextlist = NULL; }
+		| /* eps */				{ $$.nextlist = NULL;
+							  $$.retlist = NULL;
+							}
 		;
 
 stmt		: assn					{ $$.nextlist = NULL;
@@ -314,7 +316,9 @@ m2		:					{ $$.skip_label = newLabel("skip");
 							}
 		;
 
-m3		:					{ program_init(); }
+m3		:					{ dbgout << "Start Compilation \n";
+							  program_init();
+							}
 		;
 
 m4		:					{ main_init(); }

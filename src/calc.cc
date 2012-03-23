@@ -7,7 +7,7 @@
 
 string calc(string expr)
 {
-	const char *tempfile = "/tmp/calc";
+	string tempfile = string(outputPath) + "/calc";
 	string command;
 	string ans;
 
@@ -19,7 +19,7 @@ string calc(string expr)
 	int errcode = system(command.c_str());
 	BUG_IF((errcode != 0), "Executing external command failed: '" + command + "': " + string(CSymbol::NumericToString(errcode)));
 
-	ifstream tmpf(tempfile, ifstream::in);
+	ifstream tmpf(tempfile.c_str(), ifstream::in);
 	tmpf >> ans;
 	tmpf.close();
 

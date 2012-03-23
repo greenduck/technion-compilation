@@ -63,9 +63,9 @@ whitespace	[ \t\n\r]+
 
 "else"			{ return ELSE;
 				}
-"real"			{ return REAL;
+"real"			{ return REAL_;
 				}
-"integer"		{ return INTEGER;
+"integer"		{ return INTEGER_;
 				}
 "write"			{ return WRITE;
 				}

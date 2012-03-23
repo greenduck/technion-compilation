@@ -74,4 +74,5 @@ filebuf dbgfileFb;
 ostream dbgout(&dbgfileFb);
 
 bool constPropagation;
+char *outputPath;
 
