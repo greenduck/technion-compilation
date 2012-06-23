@@ -1,28 +1,29 @@
 #include <stdlib.h>
-#include <iostream>
-#include <fstream>
+#include <ctype.h>
 #include "calc.h"
 #include "utils.h"
 #include "symbol.h"
 
 string calc(string expr)
 {
-	string tempfile = string(outputPath) + "/calc";
 	string command;
-	string ans;
+	char ans[128];
+	int i;
 
 	command += "echo \"";
 	command += expr;
-	command += "\" | bc > ";
-	command += tempfile;
+	command += "\" | bc";
 
-	int errcode = system(command.c_str());
-	BUG_IF((errcode != 0), "Executing external command failed: '" + command + "': " + string(CSymbol::NumericToString(errcode)));
+	FILE *fp = popen(command.c_str(), "r");
+	unsigned count = fread(ans, 1, sizeof(ans), fp);
+	BUG_IF((count >= sizeof(ans)), "Unexpectedly large numeric calculation result");
+	pclose(fp);
 
-	ifstream tmpf(tempfile.c_str(), ifstream::in);
-	tmpf >> ans;
-	tmpf.close();
+	// fread() might pull in a few unrelated characters
+	for (i = 0; isdigit(ans[i]); ++i);
+	ans[i] = '\0';
 
-	return ans;
+//	dbgout << "calc: " << expr << " = " << ans << " \n";
+	return string(ans);
 }
 
